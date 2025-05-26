@@ -5,6 +5,7 @@ import { docenteService } from '../../api/docenteService';
 import type { Docente } from '../../api/config';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { Modal } from '../../components/ui/Modal';
 
 const DocentesPage: React.FC = () => {
   const [docentes, setDocentes] = useState<Docente[]>([]);
@@ -43,20 +44,34 @@ const DocentesPage: React.FC = () => {
   // Manejar la creación de un nuevo docente
   const handleCreate = () => {
     setCurrentDocente({
-      nombre: '',
-      email: '',
+      dni: '',
+      nombres: '',
+      apellidos: '',
+      email: '',  
       especialidad: '',
       telefono: '',
       direccion: '',
-      tipoContrato: '',
       estado: 'Activo',
+      tipoContrato: 'Tiempo completo',
+      horasDisponibles: 0
     });
     setIsFormOpen(true);
   };
 
   // Manejar la edición de un docente existente
   const handleEdit = (docente: Docente) => {
-    setCurrentDocente({ ...docente });
+    // When editing, keep the existing data but ensure required fields are set
+    setCurrentDocente({
+      ...docente,
+      // Ensure required fields have defaults if undefined
+      nombres: docente.nombres || '',
+      apellidos: docente.apellidos || '',
+      email: docente.email || '',
+      especialidad: docente.especialidad || '',
+      estado: docente.estado || 'Activo',
+      tipoContrato: docente.tipoContrato || 'Tiempo completo',
+      horasDisponibles: docente.horasDisponibles || 0
+    });
     setIsFormOpen(true);
   };
 
@@ -74,18 +89,58 @@ const DocentesPage: React.FC = () => {
     }
   };
 
+  // Función para verificar si el email ya existe
+  const verificarEmailExistente = async (email: string, excludeId?: number | string): Promise<boolean> => {
+    try {
+      const docentes = await docenteService.getAll();
+      return docentes.some(docente => {
+        // Normalizar emails para comparación insensible a mayúsculas
+        const emailCoincide = docente.email?.toLowerCase() === email.toLowerCase();
+        // Si se proporciona un ID a excluir, verificar que no sea el mismo docente
+        const esMismoDocente = excludeId !== undefined && String(docente.id) === String(excludeId);
+        return emailCoincide && !esMismoDocente;
+      });
+    } catch (error) {
+      console.error('Error al verificar email existente:', error);
+      return false;
+    }
+  };
+
   // Manejar el envío del formulario (crear/actualizar)
   const handleSubmit = async (formData: Partial<Docente>) => {
     try {
+      if (!formData.email) {
+        throw new Error('El correo electrónico es requerido');
+      }
+
       setIsSubmitting(true);
       
+      // Verificar si el email ya existe (excluyendo el docente actual si es una edición)
+      const emailExiste = await verificarEmailExistente(
+        formData.email,
+        formData.id
+      );
+
+      if (emailExiste) {
+        throw new Error(
+          formData.id 
+            ? 'Ya existe otro docente con este correo electrónico' 
+            : 'Ya existe un docente con este correo electrónico'
+        );
+      }
+      
+      // Crear un objeto limpio sin campos undefined
+      const cleanData = Object.fromEntries(
+        Object.entries(formData).filter(([_, v]) => v !== undefined)
+      );
+
       if (formData.id) {
         // Actualizar docente existente
-        await docenteService.update(formData.id, formData);
+        await docenteService.update(formData.id, cleanData);
         toast.success('Docente actualizado correctamente');
       } else {
         // Crear nuevo docente
-        await docenteService.create(formData as Omit<Docente, 'id'>);
+        await docenteService.create(cleanData as Omit<Docente, 'id'>);
         toast.success('Docente creado correctamente');
       }
       
@@ -94,7 +149,13 @@ const DocentesPage: React.FC = () => {
       loadDocentes();
     } catch (error: any) {
       console.error('Error al guardar el docente:', error);
-      toast.error(error.message || 'Error al guardar el docente');
+      
+      // Mostrar mensajes de error más amigables
+      if (error.message.includes('Ya existe')) {
+        toast.error(error.message);
+      } else {
+        toast.error('Error al guardar el docente. Verifique los datos e intente nuevamente.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -157,32 +218,20 @@ const DocentesPage: React.FC = () => {
       </div>
 
       {/* Modal de formulario */}
-      {isFormOpen && currentDocente && (
-        <div className="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => !isSubmitting && setIsFormOpen(false)}></div>
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full sm:p-6">
-              <div>
-                <div className="mt-3 text-center sm:mt-0 sm:text-left">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                    {currentDocente.id ? 'Editar Docente' : 'Nuevo Docente'}
-                  </h3>
-                  <div className="mt-4">
-                    <DocenteForm
-                      initialData={currentDocente}
-                      onSubmit={handleSubmit}
-                      isEditing={!!currentDocente.id}
-                      onCancel={() => !isSubmitting && setIsFormOpen(false)}
-                      isSubmitting={isSubmitting}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={isFormOpen && !!currentDocente}
+        onClose={() => !isSubmitting && setIsFormOpen(false)}
+        title={currentDocente?.id ? 'Editar Docente' : 'Nuevo Docente'}
+        maxWidth="800px"
+      >
+        <DocenteForm
+          initialData={currentDocente || {}}
+          onSubmit={handleSubmit}
+          isEditing={!!currentDocente?.id}
+          onCancel={() => !isSubmitting && setIsFormOpen(false)}
+          isSubmitting={isSubmitting}
+        />
+      </Modal>
     </div>
   );
 };

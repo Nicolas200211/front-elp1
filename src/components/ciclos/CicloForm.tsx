@@ -1,7 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { cicloService } from '../../api/cicloService';
 import type { Ciclo } from '../../api/config';
 import { toast } from 'react-toastify';
+
+// Type for the form data that matches the API expected type
+type CicloFormData = {
+  anio: number;
+  periodo: 'I' | 'II' | 'Extra';
+};
 
 interface CicloFormProps {
   initialData?: Partial<Ciclo>;
@@ -9,39 +15,17 @@ interface CicloFormProps {
   onCancel: () => void;
 }
 
-const PERIODOS = [
-  'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'Verano', 'Invierno'
-];
-
-const ESTADOS = [
-  'Activo', 'Inactivo', 'Pendiente', 'Finalizado', 'Cancelado'
-];
+const PERIODOS: Array<CicloFormData['periodo']> = ['I', 'II', 'Extra'];
 
 const CicloForm: React.FC<CicloFormProps> = ({ initialData, onSuccess, onCancel }) => {
-  const [formData, setFormData] = useState<Partial<Ciclo>>({
-    anio: new Date().getFullYear(),
-    periodo: 'I',
-    fechaInicio: '',
-    fechaFin: '',
-    estado: 'Pendiente',
-    ...initialData
+  const [formData, setFormData] = useState<CicloFormData>({
+    anio: initialData?.anio || new Date().getFullYear(),
+    periodo: initialData?.periodo || 'I'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const isEdit = !!initialData?.id;
-
-  useEffect(() => {
-    if (initialData) {
-      setFormData(prev => ({
-        ...prev,
-        ...initialData,
-        // Asegurarse de que las fechas estén en el formato correcto para el input date
-        fechaInicio: initialData.fechaInicio ? new Date(initialData.fechaInicio).toISOString().split('T')[0] : '',
-        fechaFin: initialData.fechaFin ? new Date(initialData.fechaFin).toISOString().split('T')[0] : ''
-      }));
-    }
-  }, [initialData]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -54,20 +38,8 @@ const CicloForm: React.FC<CicloFormProps> = ({ initialData, onSuccess, onCancel 
     
     if (!formData.periodo) {
       newErrors.periodo = 'El período es requerido';
-    }
-    
-    if (!formData.fechaInicio) {
-      newErrors.fechaInicio = 'La fecha de inicio es requerida';
-    }
-    
-    if (!formData.fechaFin) {
-      newErrors.fechaFin = 'La fecha de fin es requerida';
-    } else if (formData.fechaInicio && formData.fechaFin < formData.fechaInicio) {
-      newErrors.fechaFin = 'La fecha de fin no puede ser anterior a la fecha de inicio';
-    }
-    
-    if (!formData.estado) {
-      newErrors.estado = 'El estado es requerido';
+    } else if (!PERIODOS.includes(formData.periodo)) {
+      newErrors.periodo = 'Período no válido';
     }
     
     setErrors(newErrors);
@@ -84,11 +56,17 @@ const CicloForm: React.FC<CicloFormProps> = ({ initialData, onSuccess, onCancel 
     setIsSubmitting(true);
     
     try {
-      if (isEdit && formData.id) {
-        await cicloService.update(formData.id, formData);
+      // Only send the required fields to the API
+      const cicloData = {
+        anio: formData.anio,
+        periodo: formData.periodo
+      };
+
+      if (isEdit && initialData?.id) {
+        await cicloService.update(initialData.id, cicloData);
         toast.success('Ciclo actualizado correctamente');
       } else {
-        await cicloService.create(formData as Omit<Ciclo, 'id'>);
+        await cicloService.create(cicloData);
         toast.success('Ciclo creado correctamente');
       }
       onSuccess();
@@ -104,7 +82,7 @@ const CicloForm: React.FC<CicloFormProps> = ({ initialData, onSuccess, onCancel 
     const { name, value } = e.target;
     
     // Convertir a número si es el campo de año
-    const newValue = name === 'anio' ? parseInt(value, 10) : value;
+    const newValue = name === 'anio' ? parseInt(value, 10) || 0 : value as Ciclo['periodo'];
     
     setFormData(prev => ({
       ...prev,
@@ -162,69 +140,6 @@ const CicloForm: React.FC<CicloFormProps> = ({ initialData, onSuccess, onCancel 
               ))}
             </select>
             {errors.periodo && <p className="mt-1 text-sm text-red-600">{errors.periodo}</p>}
-          </div>
-        </div>
-
-        <div className="sm:col-span-3">
-          <label htmlFor="fechaInicio" className="block text-sm font-medium text-gray-700">
-            Fecha de inicio <span className="text-red-500">*</span>
-          </label>
-          <div className="mt-1">
-            <input
-              type="date"
-              name="fechaInicio"
-              id="fechaInicio"
-              value={formData.fechaInicio || ''}
-              onChange={handleChange}
-              className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm ${errors.fechaInicio ? 'border-red-300' : ''}`}
-            />
-            {errors.fechaInicio && <p className="mt-1 text-sm text-red-600">{errors.fechaInicio}</p>}
-          </div>
-        </div>
-
-        <div className="sm:col-span-3">
-          <label htmlFor="fechaFin" className="block text-sm font-medium text-gray-700">
-            Fecha de fin <span className="text-red-500">*</span>
-          </label>
-          <div className="mt-1">
-            <input
-              type="date"
-              name="fechaFin"
-              id="fechaFin"
-              value={formData.fechaFin || ''}
-              onChange={handleChange}
-              className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm ${errors.fechaFin ? 'border-red-300' : ''}`}
-            />
-            {errors.fechaFin && <p className="mt-1 text-sm text-red-600">{errors.fechaFin}</p>}
-          </div>
-        </div>
-
-        <div className="sm:col-span-3">
-          <label htmlFor="estado" className="block text-sm font-medium text-gray-700">
-            Estado <span className="text-red-500">*</span>
-          </label>
-          <div className="mt-1">
-            <select
-              id="estado"
-              name="estado"
-              value={formData.estado || ''}
-              onChange={handleChange}
-              className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm ${errors.estado ? 'border-red-300' : ''}`}
-              disabled={isEdit && formData.estado === 'Activo'}
-            >
-              <option value="">Seleccionar estado</option>
-              {ESTADOS.map((estado) => (
-                <option key={estado} value={estado}>
-                  {estado}
-                </option>
-              ))}
-            </select>
-            {errors.estado && <p className="mt-1 text-sm text-red-600">{errors.estado}</p>}
-            {isEdit && formData.estado === 'Activo' && (
-              <p className="mt-1 text-xs text-gray-500">
-                No se puede cambiar el estado de un ciclo activo. Desactívelo primero.
-              </p>
-            )}
           </div>
         </div>
       </div>

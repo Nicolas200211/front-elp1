@@ -32,7 +32,7 @@ export const cicloService = {
   // Actualizar un ciclo existente
   update: async (id: number, data: Partial<Ciclo>): Promise<Ciclo> => {
     return apiRequest<Ciclo>(API_ENDPOINTS.CICLOS.BY_ID(id), {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify(data)
     });
   },

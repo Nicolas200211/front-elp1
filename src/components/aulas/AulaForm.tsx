@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import type { Aula } from '../../api/config';
+import React, { useEffect, useState, useCallback } from 'react';
+import type { Aula, UnidadAcademica } from '../../api/config';
+import { unidadAcademicaService } from '../../api/unidadAcademicaService';
 
 interface AulaFormProps {
   initialData?: Partial<Aula>;
@@ -10,11 +11,10 @@ interface AulaFormProps {
 }
 
 const TIPOS_AULA = [
-  'Aula',
+  'Teórica',
   'Laboratorio',
-  'Auditorio',
-  'Sala de Reuniones',
-  'Otro'
+  'Idioma',
+  'Multifuncional'
 ];
 
 const ESTADOS = ['Disponible', 'En Mantenimiento', 'Ocupado', 'Inactivo'];
@@ -26,24 +26,53 @@ export const AulaForm: React.FC<AulaFormProps> = ({
   onCancel,
   isSubmitting,
 }) => {
+  const [unidadesAcademicas, setUnidadesAcademicas] = useState<UnidadAcademica[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<Partial<Aula>>({
-    tipo: 'Aula',
+    tipo: 'Teórica',
     estado: 'Disponible',
     tieneEquipamiento: false,
     capacidad: 20,
+    idUnidad: undefined,
     ...initialData
   });
+
+  // Cargar unidades académicas al montar el componente
+  const loadUnidadesAcademicas = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const data = await unidadAcademicaService.getAll();
+      setUnidadesAcademicas(data);
+      
+      // Si hay datos iniciales pero no hay idUnidad, establecer el primero por defecto
+      if (initialData && !initialData.idUnidad && data.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          idUnidad: data[0].id
+        }));
+      }
+    } catch (error) {
+      console.error('Error al cargar las unidades académicas:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [initialData]);
+
+  useEffect(() => {
+    loadUnidadesAcademicas();
+  }, [loadUnidadesAcademicas]);
 
   useEffect(() => {
     setFormData(prev => ({
       ...prev,
       ...initialData,
       capacidad: initialData.capacidad || 20,
-      tipo: initialData.tipo || 'Aula',
+      tipo: initialData.tipo || 'Teórica',
       estado: initialData.estado || 'Disponible',
-      tieneEquipamiento: initialData.tieneEquipamiento || false
+      tieneEquipamiento: initialData.tieneEquipamiento || false,
+      idUnidad: initialData.idUnidad || (unidadesAcademicas[0]?.id)
     }));
-  }, [initialData]);
+  }, [initialData, unidadesAcademicas]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
@@ -63,25 +92,50 @@ export const AulaForm: React.FC<AulaFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-        <div className="sm:col-span-2">
+      <div className="grid grid-cols-1 gap-6 mt-4 sm:grid-cols-2">
+        <div>
           <label htmlFor="codigo" className="block text-sm font-medium text-gray-700">
             Código <span className="text-red-500">*</span>
           </label>
-          <div className="mt-1">
-            <input
-              type="text"
-              name="codigo"
-              id="codigo"
-              value={formData.codigo || ''}
-              onChange={handleChange}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              required
-            />
-          </div>
+          <input
+            type="text"
+            name="codigo"
+            id="codigo"
+            value={formData.codigo || ''}
+            onChange={handleChange}
+            className="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            required
+          />
         </div>
-
-        <div className="sm:col-span-4">
+        
+        <div>
+          <label htmlFor="idUnidad" className="block text-sm font-medium text-gray-700">
+            Unidad Académica <span className="text-red-500">*</span>
+          </label>
+          <select
+            id="idUnidad"
+            name="idUnidad"
+            value={formData.idUnidad || ''}
+            onChange={handleChange}
+            className="block w-full px-3 py-2 mt-1 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            required
+            disabled={isLoading || unidadesAcademicas.length === 0}
+          >
+            {isLoading ? (
+              <option>Cargando unidades académicas...</option>
+            ) : unidadesAcademicas.length === 0 ? (
+              <option>No hay unidades académicas disponibles</option>
+            ) : (
+              unidadesAcademicas.map((unidad) => (
+                <option key={unidad.id} value={unidad.id}>
+                  {unidad.nombre}
+                </option>
+              ))
+            )}
+          </select>
+        </div>
+        
+        <div>
           <label htmlFor="nombre" className="block text-sm font-medium text-gray-700">
             Nombre <span className="text-red-500">*</span>
           </label>

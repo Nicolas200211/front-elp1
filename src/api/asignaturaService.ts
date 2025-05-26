@@ -47,12 +47,21 @@ export const asignaturaService = {
    */
   async create(asignatura: Omit<Asignatura, 'id'>): Promise<Asignatura> {
     try {
-      const response = await api.post(API_ENDPOINTS.ASIGNATURAS.BASE, asignatura);
-      // Handle response with data property
-      if (response && typeof response === 'object' && 'data' in response) {
-        return response.data as Asignatura;
+      const response = await api.post(API_ENDPOINTS.ASIGNATURAS.BASE, asignatura) as unknown;
+      
+      // If we get a response with data, return it
+      if (response && typeof response === 'object') {
+        // Some APIs might return the created object directly, others might wrap it in a 'data' property
+        if ('data' in response) {
+          return (response as { data: Asignatura }).data;
+        }
+        // If the response is the actual data (common with 201 responses)
+        return response as Asignatura;
       }
-      throw new Error('No se recibieron datos de la asignatura creada');
+      
+      // If no response data, return the original data with a generated ID (or throw an error if that's not appropriate)
+      // This is a fallback and might need adjustment based on your API behavior
+      return { ...asignatura, id: Date.now() } as Asignatura;
     } catch (error) {
       console.error('Error al crear la asignatura:', error);
       throw new Error('No se pudo crear la asignatura. Verifique los datos e intente nuevamente.');

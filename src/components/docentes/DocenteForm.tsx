@@ -18,9 +18,26 @@ const TIPOS_CONTRATO = [
 ];
 
 const ESTADOS = ['Activo', 'Inactivo', 'Licencia', 'Jubilado'];
+const GENEROS = [
+  { value: 'M', label: 'Masculino' },
+  { value: 'F', label: 'Femenino' },
+  { value: 'O', label: 'Otro' }
+];
 
 export const DocenteForm: React.FC<DocenteFormProps> = ({
-  initialData = {},
+  initialData = {
+    dni: '',
+    nombres: '',
+    apellidos: '',
+    email: '',
+    especialidad: '',
+    telefono: '',
+    direccion: '',
+    genero: 'O',
+    estado: 'Activo',
+    tipoContrato: 'Tiempo completo',
+    horasDisponibles: 0
+  },
   onSubmit,
   isEditing = false,
   onCancel,
@@ -29,36 +46,125 @@ export const DocenteForm: React.FC<DocenteFormProps> = ({
   const [formData, setFormData] = React.useState<Partial<Docente>>(initialData);
 
   useEffect(() => {
-    setFormData(initialData);
+    setFormData({
+      ...initialData,
+      // Asegurar que los campos requeridos tengan valores por defecto
+      nombre: initialData.nombre || `${initialData.nombres || ''} ${initialData.apellidos || ''}`.trim(),
+      dni: initialData.dni || '',
+      nombres: initialData.nombres || '',
+      apellidos: initialData.apellidos || '',
+      email: initialData.email || '',
+      especialidad: initialData.especialidad || '',
+      telefono: initialData.telefono || '',
+      direccion: initialData.direccion || '',
+      genero: initialData.genero || 'O',
+      estado: initialData.estado || 'Activo',
+      tipoContrato: initialData.tipoContrato || 'Tiempo completo',
+      horasDisponibles: initialData.horasDisponibles || 0
+    });
   }, [initialData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    
+    // Actualizar el nombre completo si se cambian nombres o apellidos
+    if (name === 'nombres' || name === 'apellidos') {
+      const nombres = name === 'nombres' ? value : formData.nombres || '';
+      const apellidos = name === 'apellidos' ? value : formData.apellidos || '';
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        nombre: `${nombres} ${apellidos}`.trim()
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: name === 'horasDisponibles' ? parseInt(value) || 0 : value
+      }));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    
+    // Crear un nuevo objeto con solo los campos que el backend espera
+    const dataToSubmit: Partial<Docente> = {
+      dni: formData.dni || '',
+      nombres: formData.nombres || '',
+      apellidos: formData.apellidos || '',
+      email: formData.email || '',
+      especialidad: formData.especialidad || '',
+      telefono: formData.telefono || undefined,
+      direccion: formData.direccion || undefined,
+      estado: formData.estado === 'Activo' ? 'Activo' : 'Inactivo', // Asegurar que sea 'Activo' o 'Inactivo'
+      tipoContrato: formData.tipoContrato || 'Tiempo completo',
+      horasDisponibles: formData.horasDisponibles ? parseInt(formData.horasDisponibles as any) : 0,
+      // Solo incluir campos adicionales si tienen valor
+      ...(formData.fechaNacimiento && { fechaNacimiento: formData.fechaNacimiento }),
+      ...(formData.tituloAcademico && { tituloAcademico: formData.tituloAcademico }),
+      ...(formData.fechaIngreso && { fechaIngreso: formData.fechaIngreso }),
+      ...(formData.fechaSalida && { fechaSalida: formData.fechaSalida }),
+      ...(formData.idUnidadAcademica && { idUnidadAcademica: formData.idUnidadAcademica })
+    };
+    
+    // Eliminar campos que no deberían enviarse
+    const { genero, ...cleanedData } = dataToSubmit;
+    
+    console.log('Datos a enviar:', cleanedData);
+    onSubmit(cleanedData);
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-        <div className="sm:col-span-6">
-          <label htmlFor="nombre" className="block text-sm font-medium text-gray-700">
-            Nombre completo <span className="text-red-500">*</span>
+        <div className="sm:col-span-3">
+          <label htmlFor="dni" className="block text-sm font-medium text-gray-700">
+            DNI <span className="text-red-500">*</span>
           </label>
           <div className="mt-1">
             <input
               type="text"
-              name="nombre"
-              id="nombre"
-              value={formData.nombre || ''}
+              name="dni"
+              id="dni"
+              value={formData.dni || ''}
               onChange={handleChange}
+              maxLength={15}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              required
+            />
+          </div>
+        </div>
+
+        <div className="sm:col-span-3">
+          <label htmlFor="nombres" className="block text-sm font-medium text-gray-700">
+            Nombres <span className="text-red-500">*</span>
+          </label>
+          <div className="mt-1">
+            <input
+              type="text"
+              name="nombres"
+              id="nombres"
+              value={formData.nombres || ''}
+              onChange={handleChange}
+              maxLength={100}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              required
+            />
+          </div>
+        </div>
+
+        <div className="sm:col-span-3">
+          <label htmlFor="apellidos" className="block text-sm font-medium text-gray-700">
+            Apellidos <span className="text-red-500">*</span>
+          </label>
+          <div className="mt-1">
+            <input
+              type="text"
+              name="apellidos"
+              id="apellidos"
+              value={formData.apellidos || ''}
+              onChange={handleChange}
+              maxLength={100}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               required
             />
@@ -100,6 +206,90 @@ export const DocenteForm: React.FC<DocenteFormProps> = ({
         </div>
 
         <div className="sm:col-span-3">
+          <label htmlFor="horasDisponibles" className="block text-sm font-medium text-gray-700">
+            Horas Disponibles <span className="text-red-500">*</span>
+          </label>
+          <div className="mt-1">
+            <input
+              type="number"
+              name="horasDisponibles"
+              id="horasDisponibles"
+              min="0"
+              max="40"
+              value={formData.horasDisponibles || 0}
+              onChange={handleChange}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              required
+            />
+            <p className="mt-1 text-xs text-gray-500">Máximo 40 horas</p>
+          </div>
+        </div>
+
+        <div className="sm:col-span-3">
+          <label htmlFor="genero" className="block text-sm font-medium text-gray-700">
+            Género
+          </label>
+          <div className="mt-1">
+            <select
+              id="genero"
+              name="genero"
+              value={formData.genero || 'O'}
+              onChange={handleChange}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            >
+              {GENEROS.map((genero) => (
+                <option key={genero.value} value={genero.value}>
+                  {genero.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="sm:col-span-3">
+          <label htmlFor="estado" className="block text-sm font-medium text-gray-700">
+            Estado
+          </label>
+          <div className="mt-1">
+            <select
+              id="estado"
+              name="estado"
+              value={formData.estado || 'Activo'}
+              onChange={handleChange}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            >
+              {ESTADOS.map((estado) => (
+                <option key={estado} value={estado}>
+                  {estado}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="sm:col-span-3">
+          <label htmlFor="tipoContrato" className="block text-sm font-medium text-gray-700">
+            Tipo de contrato <span className="text-red-500">*</span>
+          </label>
+          <div className="mt-1">
+            <select
+              id="tipoContrato"
+              name="tipoContrato"
+              value={formData.tipoContrato || 'Tiempo completo'}
+              onChange={handleChange}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              required
+            >
+              {TIPOS_CONTRATO.map((tipo) => (
+                <option key={tipo} value={tipo}>
+                  {tipo}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="sm:col-span-3">
           <label htmlFor="telefono" className="block text-sm font-medium text-gray-700">
             Teléfono <span className="text-red-500">*</span>
           </label>
@@ -116,29 +306,6 @@ export const DocenteForm: React.FC<DocenteFormProps> = ({
           </div>
         </div>
 
-        <div className="sm:col-span-3">
-          <label htmlFor="tipoContrato" className="block text-sm font-medium text-gray-700">
-            Tipo de contrato <span className="text-red-500">*</span>
-          </label>
-          <div className="mt-1">
-            <select
-              id="tipoContrato"
-              name="tipoContrato"
-              value={formData.tipoContrato || ''}
-              onChange={handleChange}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              required
-            >
-              <option value="">Seleccionar...</option>
-              {TIPOS_CONTRATO.map((tipo) => (
-                <option key={tipo} value={tipo}>
-                  {tipo}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
         <div className="sm:col-span-6">
           <label htmlFor="direccion" className="block text-sm font-medium text-gray-700">
             Dirección
@@ -152,29 +319,6 @@ export const DocenteForm: React.FC<DocenteFormProps> = ({
               onChange={handleChange}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             />
-          </div>
-        </div>
-
-        <div className="sm:col-span-3">
-          <label htmlFor="estado" className="block text-sm font-medium text-gray-700">
-            Estado <span className="text-red-500">*</span>
-          </label>
-          <div className="mt-1">
-            <select
-              id="estado"
-              name="estado"
-              value={formData.estado || ''}
-              onChange={handleChange}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              required
-            >
-              <option value="">Seleccionar...</option>
-              {ESTADOS.map((estado) => (
-                <option key={estado} value={estado}>
-                  {estado}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
       </div>

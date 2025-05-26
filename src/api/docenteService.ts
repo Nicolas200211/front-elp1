@@ -69,15 +69,42 @@ export const docenteService = {
    */
   async create(docente: Omit<Docente, 'id'>): Promise<Docente> {
     try {
-      const response = await api.post(API_ENDPOINTS.DOCENTES.BASE, docente);
-      // Handle response with data property
-      if (response && typeof response === 'object' && 'data' in response) {
-        return response.data as Docente;
+      // Crear un objeto limpio solo con los campos necesarios
+      const docenteToCreate = {
+        dni: docente.dni,
+        nombres: docente.nombres,
+        apellidos: docente.apellidos,
+        email: docente.email,
+        especialidad: docente.especialidad,
+        telefono: docente.telefono,
+        direccion: docente.direccion,
+        estado: docente.estado === 'Activo' ? 'Activo' : 'Inactivo',
+        tipoContrato: docente.tipoContrato || 'Tiempo completo',
+        horasDisponibles: docente.horasDisponibles || 0,
+        ...(docente.fechaNacimiento && { fechaNacimiento: docente.fechaNacimiento }),
+        ...(docente.tituloAcademico && { tituloAcademico: docente.tituloAcademico }),
+        ...(docente.fechaIngreso && { fechaIngreso: docente.fechaIngreso }),
+        ...(docente.fechaSalida && { fechaSalida: docente.fechaSalida }),
+        ...(docente.idUnidadAcademica && { idUnidadAcademica: docente.idUnidadAcademica })
+      };
+
+      console.log('Enviando datos del docente:', docenteToCreate);
+      const response = await api.post(API_ENDPOINTS.DOCENTES.BASE, docenteToCreate);
+      
+      console.log('Respuesta del servidor:', response);
+      
+      // La respuesta puede ser directamente el objeto Docente o estar en una propiedad 'data'
+      const createdDocente = response.data || response;
+      
+      if (!createdDocente) {
+        throw new Error('No se recibieron datos del docente creado');
       }
-      throw new Error('No se recibieron datos del docente creado');
+      
+      return createdDocente as Docente;
     } catch (error) {
       console.error('Error al crear el docente:', error);
-      throw new Error('No se pudo crear el docente. Verifique los datos e intente nuevamente.');
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      throw new Error(`No se pudo crear el docente: ${errorMessage}`);
     }
   },
 

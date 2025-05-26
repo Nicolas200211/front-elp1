@@ -97,7 +97,7 @@ export async function apiRequest<T>(
 }
 
 // Helper function for common HTTP methods
-const createApiMethod = <T>(
+const createApiMethod = <T = any>(
   method: string
 ): ((url: string, data?: any, options?: Omit<ApiRequestOptions, 'method' | 'body'>) => Promise<T>) => {
   return async (url: string, data?: any, options?: Omit<ApiRequestOptions, 'method' | 'body'>) => {
@@ -127,9 +127,14 @@ const createApiMethod = <T>(
 // API client with common methods
 export const api = {
   request: apiRequest,
-  get: createApiMethod('GET'),
-  post: createApiMethod('POST'),
-  put: createApiMethod('PUT'),
-  patch: createApiMethod('PATCH'),
-  delete: createApiMethod('DELETE'),
+  get: <T = any>(url: string, options?: Omit<ApiRequestOptions, 'method' | 'body'>) => 
+    createApiMethod<T>('GET')(url, undefined, options),
+  post: <T = any>(url: string, data?: any, options?: Omit<ApiRequestOptions, 'method' | 'body'>) => 
+    createApiMethod<T>('POST')(url, data, options),
+  put: <T = any>(url: string, data?: any, options?: Omit<ApiRequestOptions, 'method' | 'body'>) => 
+    createApiMethod<T>('PUT')(url, data, options),
+  patch: <T = any>(url: string, data?: any, options?: Omit<ApiRequestOptions, 'method' | 'body'>) => 
+    createApiMethod<T>('PATCH')(url, data, options),
+  delete: <T = any>(url: string, options?: Omit<ApiRequestOptions, 'method' | 'body'>) => 
+    createApiMethod<T>('DELETE')(url, undefined, options),
 };

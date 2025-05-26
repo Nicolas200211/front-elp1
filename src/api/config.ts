@@ -13,12 +13,14 @@ export const API_ENDPOINTS = {
     REGISTER: `${API_BASE_URL}/auth/register`,
     PROFILE: `${API_BASE_URL}/auth/profile`,
     ADMIN: `${API_BASE_URL}/auth/admin`,
+    REFRESH: `${API_BASE_URL}/auth/refresh`,
   },
 
   // Unidades Académicas
   UNIDADES_ACADEMICAS: {
     BASE: `${API_BASE_URL}/unidades-academicas`,
     BY_ID: (id: string | number) => `${API_BASE_URL}/unidades-academicas/${id}`,
+    SEARCH: (query: string) => `${API_BASE_URL}/unidades-academicas/search?q=${encodeURIComponent(query)}`,
   },
   
   // Programas Académicos (mantenido por compatibilidad)
@@ -114,6 +116,7 @@ export const API_ENDPOINTS = {
     BASE: `${API_BASE_URL}/docentes`,
     BY_ID: (id: string | number) => `${API_BASE_URL}/docentes/${id}`,
     SOBREASIGNACION: (id: string | number) => `${API_BASE_URL}/docentes/${id}/sobreasignacion`,
+    SEARCH: (query: string) => `${API_BASE_URL}/docentes/search?q=${encodeURIComponent(query)}`,
   },
 
   // Horarios
@@ -195,9 +198,9 @@ export interface LoginCredentials {
 export interface Ciclo {
   id?: number;
   anio: number;
-  periodo: 'I' | 'II' | 'III' | 'IV' | 'V' | 'VI' | 'VII' | 'VIII' | 'IX' | 'X' | 'Verano' | 'Invierno';
-  createdAt: string;     // Fecha de creación desde el servidor
-  updatedAt: string;     // Fecha de actualización desde el servidor
+  periodo: 'I' | 'II' | 'Extra';
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Programa {
@@ -259,7 +262,7 @@ export interface Aula {
   codigo: string;
   nombre: string;
   capacidad: number;
-  tipo: 'Aula' | 'Laboratorio' | 'Auditorio' | 'Sala de Reuniones' | 'Otro';
+  tipo: 'Teórica' | 'Laboratorio' | 'Idioma' | 'Multifuncional';
   descripcion?: string;
   idUnidad: number;
   estado: 'Disponible' | 'En Mantenimiento' | 'Ocupado' | 'Inactivo';
@@ -268,23 +271,24 @@ export interface Aula {
 
 export interface Docente {
   id?: number;
-  nombre: string;  // Cambiado de nombres a nombre
+  nombre: string;
+  dni: string;
+  nombres: string;
+  apellidos: string;
   email: string;
   telefono?: string;
   direccion?: string;
   fechaNacimiento?: string;
-  genero?: 'M' | 'F' | 'O';
-  estado?: 'Activo' | 'Inactivo' | 'Jubilado' | 'Licencia';
+  genero: 'M' | 'F' | 'O';
+  estado: 'Activo' | 'Inactivo' | 'Jubilado' | 'Licencia';
   tituloAcademico?: string;
-  especialidad?: string;
-  tipoContrato?: string;
+  especialidad: string;
+  tipoContrato: string;
+  horasDisponibles: number;
   fechaIngreso?: string;
   fechaSalida?: string | null;
   idUnidadAcademica?: number;
   unidadAcademica?: UnidadAcademica;
-  // Campos adicionales para compatibilidad
-  nombres?: string;  // Mantenido para compatibilidad
-  apellidos?: string; // Mantenido para compatibilidad
 }
 
 export interface Asignatura {

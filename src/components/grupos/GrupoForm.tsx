@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { grupoService } from '../../api/grupoService';
-import type { Grupo, Ciclo, Programa } from '../../api/config';
+import type { Grupo } from '../../api/config'; // Removed unused Ciclo and Programa imports
 
 interface GrupoFormProps {
   initialData?: Partial<Grupo>;
