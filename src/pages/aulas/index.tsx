@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { AulaForm } from '../../components/aulas/AulaForm';
 import { AulaTable } from '../../components/aulas/AulaTable';
 import { aulaService } from '../../api/aulaService';
-import type { Aula } from '../../api/config';
+import { unidadAcademicaService } from '../../api/unidadAcademicaService';
+import type { Aula, UnidadAcademica } from '../../api/config';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Modal } from '../../components/ui/Modal';
@@ -14,6 +15,8 @@ const AulasPage: React.FC = () => {
   const [currentAula, setCurrentAula] = useState<Partial<Aula> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [unidadesAcademicas, setUnidadesAcademicas] = useState<UnidadAcademica[]>([]);
+  const [isLoadingUnidades, setIsLoadingUnidades] = useState<boolean>(true);
 
   // Cargar aulas
   const loadAulas = useCallback(async () => {
@@ -50,10 +53,26 @@ const AulasPage: React.FC = () => {
     }
   }, [searchQuery]);
 
-  // Cargar aulas al montar el componente o cambiar la búsqueda
+  // Cargar unidades académicas al montar el componente
+  const loadUnidadesAcademicas = useCallback(async () => {
+    try {
+      setIsLoadingUnidades(true);
+      const data = await unidadAcademicaService.getAll();
+      setUnidadesAcademicas(data || []);
+    } catch (error) {
+      console.error('Error al cargar las unidades académicas:', error);
+      toast.error('No se pudieron cargar las unidades académicas');
+      setUnidadesAcademicas([]);
+    } finally {
+      setIsLoadingUnidades(false);
+    }
+  }, []);
+
+  // Cargar datos al montar el componente
   useEffect(() => {
     loadAulas();
-  }, [loadAulas]);
+    loadUnidadesAcademicas();
+  }, [loadAulas, loadUnidadesAcademicas]);
 
   // Manejar la creación de una nueva aula
   const handleCreate = () => {
@@ -61,7 +80,7 @@ const AulasPage: React.FC = () => {
       codigo: '',
       nombre: '',
       capacidad: 20,
-      tipo: 'Aula',
+      tipo: 'Teórica',
       descripcion: '',
       idUnidad: 0,
       estado: 'Disponible',
@@ -215,12 +234,14 @@ const AulasPage: React.FC = () => {
         }
       >
         {currentAula && (
-          <AulaForm
-            initialData={currentAula}
-            onSubmit={handleSubmit}
-            isEditing={!!currentAula.id}
+          <AulaForm 
+            initialData={currentAula || {}} 
+            onSubmit={handleSubmit} 
             onCancel={() => !isSubmitting && setIsFormOpen(false)}
             isSubmitting={isSubmitting}
+            unidadesAcademicas={unidadesAcademicas}
+            isLoadingUnidades={isLoadingUnidades}
+            isEditing={!!currentAula?.id}
           />
         )}
       </Modal>
