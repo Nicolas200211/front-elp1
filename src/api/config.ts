@@ -161,6 +161,7 @@ export interface UnidadAcademica {
   id?: number;
   nombre: string;
   descripcion: string;
+  codigo?: string;
 }
 
 export interface Grupo {

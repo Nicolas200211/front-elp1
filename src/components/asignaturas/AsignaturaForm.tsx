@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import type { Asignatura } from '../../api/config';
+import React, { useState, useEffect, useCallback } from 'react';
+import type { Asignatura, Docente, Programa, UnidadAcademica } from '../../api/config';
+import { docenteService } from '../../api/docenteService';
+import { programaService } from '../../api/programaService';
+import { unidadAcademicaService } from '../../api/unidadAcademicaService';
 
 interface AsignaturaFormProps {
   initialData?: Partial<Asignatura>;
@@ -17,10 +20,66 @@ export const AsignaturaForm: React.FC<AsignaturaFormProps> = ({
   isSubmitting = false,
 }) => {
   const [formData, setFormData] = useState<Partial<Asignatura>>(initialData);
+  const [docentes, setDocentes] = useState<Docente[]>([]);
+  const [programas, setProgramas] = useState<Programa[]>([]);
+  const [unidadesAcademicas, setUnidadesAcademicas] = useState<UnidadAcademica[]>([]);
+  const [isLoading, setIsLoading] = useState({
+    docentes: true,
+    programas: true,
+    unidades: true
+  });
+
+  // Cargar datos para los dropdowns
+  const loadData = useCallback(async () => {
+    try {
+      console.log('Cargando datos para los dropdowns...');
+      setIsLoading({ docentes: true, programas: true, unidades: true });
+      
+      // Cargar docentes
+      try {
+        const docentesData = await docenteService.getAll();
+        console.log('Docentes cargados:', docentesData?.length || 0);
+        setDocentes(docentesData || []);
+      } catch (error) {
+        console.error('Error cargando docentes:', error);
+        setDocentes([]);
+      } finally {
+        setIsLoading(prev => ({ ...prev, docentes: false }));
+      }
+      
+      // Cargar programas
+      try {
+        const programasData = await programaService.getAll();
+        console.log('Programas cargados:', programasData?.length || 0);
+        setProgramas(programasData || []);
+      } catch (error) {
+        console.error('Error cargando programas:', error);
+        setProgramas([]);
+      } finally {
+        setIsLoading(prev => ({ ...prev, programas: false }));
+      }
+      
+      // Cargar unidades académicas
+      try {
+        const unidadesData = await unidadAcademicaService.getAll();
+        console.log('Unidades académicas cargadas:', unidadesData?.length || 0);
+        setUnidadesAcademicas(unidadesData || []);
+      } catch (error) {
+        console.error('Error cargando unidades académicas:', error);
+        setUnidadesAcademicas([]);
+      } finally {
+        setIsLoading(prev => ({ ...prev, unidades: false }));
+      }
+      
+    } catch (error) {
+      console.error('Error inesperado al cargar datos:', error);
+    }
+  }, []);
 
   useEffect(() => {
     setFormData(initialData);
-  }, [initialData]);
+    loadData();
+  }, [initialData, loadData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -69,129 +128,177 @@ export const AsignaturaForm: React.FC<AsignaturaFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Código</label>
-          <input
-            type="text"
-            name="codigo"
-            value={formData.codigo || ''}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            required
-          />
+      <div className="space-y-6">
+        {/* Sección de información básica */}
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h3 className="text-lg font-medium text-gray-900 mb-6 pb-2 border-b border-gray-200">Información Básica</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Código</label>
+              <input
+                type="text"
+                name="codigo"
+                value={formData.codigo || ''}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
+                placeholder="Ej: MAT101"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+              <input
+                type="text"
+                name="nombre"
+                value={formData.nombre || ''}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
+                placeholder="Nombre de la asignatura"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Créditos</label>
+              <input
+                type="number"
+                name="creditos"
+                value={formData.creditos || ''}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
+                min="0"
+                step="0.5"
+                placeholder="Ej: 4"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Horas Teóricas</label>
+              <input
+                type="number"
+                name="horasTeoricas"
+                value={formData.horasTeoricas || ''}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
+                min="0"
+                placeholder="Horas semanales"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Horas Prácticas</label>
+              <input
+                type="number"
+                name="horasPracticas"
+                value={formData.horasPracticas || ''}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
+                min="0"
+                placeholder="Horas semanales"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+              <select
+                name="tipo"
+                value={formData.tipo || ''}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
+              >
+                <option value="">Seleccione un tipo</option>
+                <option value="Obligatoria">Obligatoria</option>
+                <option value="Electiva">Electiva</option>
+                <option value="Libre Elección">Libre Elección</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+              <select
+                name="estado"
+                value={formData.estado || ''}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
+              >
+                <option value="">Seleccione un estado</option>
+                <option value="Activa">Activa</option>
+                <option value="Inactiva">Inactiva</option>
+              </select>
+            </div>
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Nombre</label>
-          <input
-            type="text"
-            name="nombre"
-            value={formData.nombre || ''}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Créditos</label>
-          <input
-            type="number"
-            name="creditos"
-            value={formData.creditos || ''}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            required
-            min="1"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Horas Teóricas</label>
-          <input
-            type="number"
-            name="horasTeoricas"
-            value={formData.horasTeoricas || ''}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            required
-            min="0"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Horas Prácticas</label>
-          <input
-            type="number"
-            name="horasPracticas"
-            value={formData.horasPracticas || ''}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            required
-            min="0"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Tipo</label>
-          <select
-            name="tipo"
-            value={formData.tipo || ''}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            required
-          >
-            <option value="">Seleccione un tipo</option>
-            <option value="Obligatoria">Obligatoria</option>
-            <option value="Electiva">Electiva</option>
-            <option value="Optativa">Optativa</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Estado</label>
-          <select
-            name="estado"
-            value={formData.estado || ''}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            required
-          >
-            <option value="">Seleccione un estado</option>
-            <option value="Activa">Activa</option>
-            <option value="Inactiva">Inactiva</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">ID Programa</label>
-          <input
-            type="number"
-            name="idPrograma"
-            value={formData.idPrograma || ''}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            required
-            min="1"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">ID Docente</label>
-          <input
-            type="number"
-            name="idDocente"
-            value={formData.idDocente || ''}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            required
-            min="1"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">ID Unidad Académica</label>
-          <input
-            type="number"
-            name="idUnidadAcademica"
-            value={formData.idUnidadAcademica || ''}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            required
-            min="1"
-          />
+        
+        {/* Sección de relaciones */}
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h3 className="text-lg font-medium text-gray-900 mb-6 pb-2 border-b border-gray-200">Relaciones</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Programa Académico</label>
+              <select
+                name="idPrograma"
+                value={formData.idPrograma || ''}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
+                disabled={isLoading.programas}
+              >
+                <option value="">Seleccione un programa</option>
+                {programas.map(programa => (
+                  <option key={programa.id} value={programa.id}>
+                    {programa.nombre}
+                  </option>
+                ))}
+              </select>
+              {isLoading.programas && (
+                <p className="mt-1 text-sm text-gray-500">Cargando programas...</p>
+              )}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Docente</label>
+              <select
+                name="idDocente"
+                value={formData.idDocente || ''}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
+                disabled={isLoading.docentes}
+              >
+                <option value="">Seleccione un docente</option>
+                {docentes.map(docente => (
+                  <option key={docente.id} value={docente.id}>
+                    {docente.nombres} {docente.apellidos}
+                  </option>
+                ))}
+              </select>
+              {isLoading.docentes && (
+                <p className="mt-1 text-sm text-gray-500">Cargando docentes...</p>
+              )}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Unidad Académica</label>
+              <select
+                name="idUnidadAcademica"
+                value={formData.idUnidadAcademica || ''}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
+                disabled={isLoading.unidades}
+              >
+                <option value="">Seleccione una unidad</option>
+                {unidadesAcademicas.map(unidad => (
+                  <option key={unidad.id} value={unidad.id}>
+                    {unidad.nombre}
+                  </option>
+                ))}
+              </select>
+              {isLoading.unidades && (
+                <p className="mt-1 text-sm text-gray-500">Cargando unidades académicas...</p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
       <div className="flex justify-end space-x-3 pt-4">

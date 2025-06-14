@@ -88,9 +88,14 @@ const ProgramacionHorariosPage: React.FC = () => {
             telefono: '123456789',
             direccion: 'Calle 123',
             estado: 'Activo',
-            // Mantener compatibilidad con nombres y apellidos separados
             nombres: 'Juan',
-            apellidos: 'Pérez'
+            apellidos: 'Pérez',
+            dni: '12345678',
+            genero: 'M',
+            tipoContrato: 'Tiempo Completo',
+            horasDisponibles: 40,
+            tituloAcademico: 'Magíster en Educación',
+            fechaIngreso: '2020-01-15'
           },
           { 
             id: 2, 
@@ -100,9 +105,14 @@ const ProgramacionHorariosPage: React.FC = () => {
             telefono: '987654321',
             direccion: 'Avenida 456',
             estado: 'Activo',
-            // Mantener compatibilidad con nombres y apellidos separados
             nombres: 'María',
-            apellidos: 'González'
+            apellidos: 'González',
+            dni: '87654321',
+            genero: 'F',
+            tipoContrato: 'Tiempo Parcial',
+            horasDisponibles: 20,
+            tituloAcademico: 'Licenciada en Letras',
+            fechaIngreso: '2019-08-10'
           },
         ];
         
@@ -111,7 +121,7 @@ const ProgramacionHorariosPage: React.FC = () => {
             id: 1, 
             nombre: 'Aula 101', 
             codigo: 'A101',
-            tipo: 'Aula',
+            tipo: 'Teórica',
             capacidad: 30,
             idUnidad: 1,
             estado: 'Disponible',
