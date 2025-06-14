@@ -1,6 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { Aula, UnidadAcademica } from '../../api/config';
-import { unidadAcademicaService } from '../../api/unidadAcademicaService';
 
 interface AulaFormProps {
   initialData?: Partial<Aula>;
@@ -8,6 +7,8 @@ interface AulaFormProps {
   isEditing?: boolean;
   onCancel: () => void;
   isSubmitting: boolean;
+  unidadesAcademicas: UnidadAcademica[];
+  isLoadingUnidades: boolean;
 }
 
 const TIPOS_AULA = [
@@ -25,9 +26,9 @@ export const AulaForm: React.FC<AulaFormProps> = ({
   isEditing = false,
   onCancel,
   isSubmitting,
+  unidadesAcademicas = [],
+  isLoadingUnidades = false,
 }) => {
-  const [unidadesAcademicas, setUnidadesAcademicas] = useState<UnidadAcademica[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<Partial<Aula>>({
     tipo: 'Teórica',
     estado: 'Disponible',
@@ -37,30 +38,15 @@ export const AulaForm: React.FC<AulaFormProps> = ({
     ...initialData
   });
 
-  // Cargar unidades académicas al montar el componente
-  const loadUnidadesAcademicas = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const data = await unidadAcademicaService.getAll();
-      setUnidadesAcademicas(data);
-      
-      // Si hay datos iniciales pero no hay idUnidad, establecer el primero por defecto
-      if (initialData && !initialData.idUnidad && data.length > 0) {
-        setFormData(prev => ({
-          ...prev,
-          idUnidad: data[0].id
-        }));
-      }
-    } catch (error) {
-      console.error('Error al cargar las unidades académicas:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [initialData]);
-
+  // Establecer la primera unidad académica como valor por defecto si no hay un idUnidad
   useEffect(() => {
-    loadUnidadesAcademicas();
-  }, [loadUnidadesAcademicas]);
+    if (unidadesAcademicas.length > 0 && !formData.idUnidad) {
+      setFormData(prev => ({
+        ...prev,
+        idUnidad: unidadesAcademicas[0]?.id
+      }));
+    }
+  }, [unidadesAcademicas, formData.idUnidad]);
 
   useEffect(() => {
     setFormData(prev => ({
@@ -87,6 +73,7 @@ export const AulaForm: React.FC<AulaFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting || isLoadingUnidades) return;
     onSubmit(formData);
   };
 
@@ -112,27 +99,42 @@ export const AulaForm: React.FC<AulaFormProps> = ({
           <label htmlFor="idUnidad" className="block text-sm font-medium text-gray-700">
             Unidad Académica <span className="text-red-500">*</span>
           </label>
-          <select
-            id="idUnidad"
-            name="idUnidad"
-            value={formData.idUnidad || ''}
-            onChange={handleChange}
-            className="block w-full px-3 py-2 mt-1 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-            required
-            disabled={isLoading || unidadesAcademicas.length === 0}
-          >
-            {isLoading ? (
-              <option>Cargando unidades académicas...</option>
-            ) : unidadesAcademicas.length === 0 ? (
-              <option>No hay unidades académicas disponibles</option>
-            ) : (
-              unidadesAcademicas.map((unidad) => (
+          <div className="relative">
+            <select
+              id="idUnidad"
+              name="idUnidad"
+              value={formData.idUnidad || ''}
+              onChange={handleChange}
+              className="block w-full px-3 py-2 mt-1 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              required
+              disabled={isLoadingUnidades || unidadesAcademicas.length === 0}
+              aria-invalid={!formData.idUnidad ? 'true' : 'false'}
+              aria-describedby="unidad-error"
+            >
+              <option value="">Seleccione una unidad académica</option>
+              {unidadesAcademicas.map((unidad) => (
                 <option key={unidad.id} value={unidad.id}>
-                  {unidad.nombre}
+                  {unidad.nombre} {unidad.codigo ? `(${unidad.codigo})` : ''}
                 </option>
-              ))
+              ))}
+            </select>
+            
+            {isLoadingUnidades ? (
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : unidadesAcademicas.length === 0 && (
+              <p className="mt-1 text-sm text-red-600" id="unidad-error">
+                No se pudieron cargar las unidades académicas. Intente recargar la página.
+              </p>
             )}
-          </select>
+            
+            {!formData.idUnidad && formData.idUnidad !== undefined && !isLoadingUnidades && unidadesAcademicas.length > 0 && (
+              <p className="mt-1 text-sm text-red-600" id="unidad-required">
+                Por favor seleccione una unidad académica
+              </p>
+            )}
+          </div>
         </div>
         
         <div>
