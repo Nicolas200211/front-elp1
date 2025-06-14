@@ -16,7 +16,6 @@ import ProgramacionHorariosPage from './pages/programacion-horarios';
 import ProgramacionGeneralPage from './pages/programacion-general';
 import CiclosPage from './pages/ciclos';
 
-// Página 404
 const NotFoundPage: React.FC = () => (
   <div className="flex flex-col items-center justify-center h-64">
     <h1 className="text-4xl font-bold text-gray-900">404</h1>
@@ -34,7 +33,7 @@ const LoadingSpinner = () => (
 // Componente para proteger rutas que requieren autenticación
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
-  
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -42,14 +41,14 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  
+
   return <>{children}</>;
 };
 
 // Componente para rutas públicas
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
-  
+
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -57,7 +56,7 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
-  
+
   return <>{children}</>;
 };
 
@@ -65,13 +64,13 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 const AppContent: React.FC = () => {
   return (
     <Routes>
-      <Route 
-        path="/login" 
+      <Route
+        path="/login"
         element={
           <PublicRoute>
             <Login />
           </PublicRoute>
-        } 
+        }
       />
       <Route
         path="/*"
@@ -108,7 +107,7 @@ const App: React.FC = () => {
       <AuthProvider>
         <div className="App">
           <AppContent />
-          <ToastContainer 
+          <ToastContainer
             position="top-right"
             autoClose={5000}
             hideProgressBar={false}
