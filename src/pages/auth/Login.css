@@ -1,0 +1,45 @@
+/* Animaciones personalizadas para el texto */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+/* Clase para la animación de carga */
+.animate-on-load {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.animate-on-load.animate-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Efecto de hover en el botón */
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+.hover-scale:active {
+  transform: scale(0.99);
+}
+
+/* Transición suave para el icono de flecha */
+.arrow-transition {
+  transition: transform 0.3s ease;
+}
+
+.hover-arrow:hover .arrow-transition {
+  transform: translateX(3px);
+}

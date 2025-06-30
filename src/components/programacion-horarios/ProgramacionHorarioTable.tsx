@@ -1,21 +1,187 @@
-import React from 'react';
-import type { ProgramacionHorario } from '../../api/config';
+import { useState } from 'react';
+import type { ProgramacionHorario, Grupo, Asignatura, Docente, Aula } from '../../api/config';
+
+type HorarioFormData = {
+  dia: string;
+  hora_inicio: string;
+  hora_fin: string;
+  turno: string;
+  id_grupo: number;
+  id_asignatura: number;
+  id_docente: number;
+  id_aula: number;
+};
+import { 
+  FiEdit2, 
+  FiTrash2, 
+  FiCalendar
+} from 'react-icons/fi';
+import { DeleteModal } from '../modales/DeleteModal';
+import ProgramacionHorarioForm from './ProgramacionHorarioForm';
+
+
+
+interface CellRendererProps<T> {
+  row: {
+    original: T;
+  };
+  value: any;
+}
+
+interface Column<D> {
+  Header: string;
+  accessor: keyof D | string;
+  Cell?: (props: CellRendererProps<D>) => React.ReactNode;
+}
 
 interface ProgramacionHorarioTableProps {
-  horarios: ProgramacionHorario[];
+  data: ProgramacionHorario[];
   onEdit: (horario: ProgramacionHorario) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: number) => Promise<void>;
+  grupos: Grupo[];
+  asignaturas: Asignatura[];
+  docentes: Docente[];
+  aulas: Aula[];
   isLoading?: boolean;
-  showActions?: boolean;
 }
 
 export const ProgramacionHorarioTable: React.FC<ProgramacionHorarioTableProps> = ({
-  horarios,
+  data,
   onEdit,
   onDelete,
   isLoading = false,
-  showActions = true,
+  grupos = [],
+  asignaturas = [],
+  docentes = [],
+  aulas = [],
 }) => {
+  const [editingHorario, setEditingHorario] = useState<ProgramacionHorario | null>(null);
+  const [deletingHorario, setDeletingHorario] = useState<ProgramacionHorario | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  const columns: Column<ProgramacionHorario>[] = [
+    {
+      Header: 'ID',
+      accessor: 'id',
+      Cell: ({ value }) => <>{value || ''}</>,
+    },
+    {
+      Header: 'Día',
+      accessor: 'dia',
+      Cell: ({ value }) => <>{value || ''}</>,
+    },
+    {
+      Header: 'Hora Inicio',
+      accessor: 'hora_inicio',
+      Cell: ({ value }) => <>{typeof value === 'string' ? value.substring(0, 5) : ''}</>,
+    },
+    {
+      Header: 'Hora Fin',
+      accessor: 'hora_fin',
+      Cell: ({ value }) => <>{typeof value === 'string' ? value.substring(0, 5) : ''}</>,
+    },
+    {
+      Header: 'Turno',
+      accessor: 'turno',
+      Cell: ({ value }) => <>{value || ''}</>,
+    },
+    {
+      Header: 'Grupo',
+      accessor: 'grupo',
+      Cell: ({ row }) => {
+        // Usar el objeto grupo incluido en la respuesta de la API
+        if (row.original.grupo && typeof row.original.grupo === 'object') {
+          return <>{row.original.grupo.nombre || `ID: ${row.original.idGrupo || row.original.id_grupo}`}</>;
+        }
+        // Si no está incluido, buscar por ID
+        const grupo = grupos.find(g => g.id === (row.original.idGrupo || row.original.id_grupo));
+        return <>{grupo?.nombre || `ID: ${row.original.idGrupo || row.original.id_grupo}`}</>;
+      },
+    },
+    {
+      Header: 'Asignatura',
+      accessor: 'asignatura',
+      Cell: ({ row }) => {
+        // Usar el objeto asignatura incluido en la respuesta de la API
+        if (row.original.asignatura && typeof row.original.asignatura === 'object') {
+          return <>{row.original.asignatura.nombre || `ID: ${row.original.idAsignatura || row.original.id_asignatura}`}</>;
+        }
+        // Si no está incluido, buscar por ID
+        const asignatura = asignaturas.find(a => a.id === (row.original.idAsignatura || row.original.id_asignatura));
+        return <>{asignatura?.nombre || `ID: ${row.original.idAsignatura || row.original.id_asignatura}`}</>;
+      },
+    },
+    {
+      Header: 'Docente',
+      accessor: 'docente',
+      Cell: ({ row }) => {
+        // Usar el objeto docente incluido en la respuesta de la API
+        if (row.original.docente && typeof row.original.docente === 'object') {
+          const nombres = row.original.docente.nombres || '';
+          const apellidos = row.original.docente.apellidos || '';
+          return <>{`${nombres} ${apellidos}`.trim() || `ID: ${row.original.idDocente || row.original.id_docente}`}</>;
+        }
+        // Si no está incluido, buscar por ID
+        const docente = docentes.find(d => d.id === (row.original.idDocente || row.original.id_docente));
+        return <>{docente ? `${docente.nombres || ''} ${docente.apellidos || ''}`.trim() : `ID: ${row.original.idDocente || row.original.id_docente}`}</>;
+      },
+    },
+    {
+      Header: 'Aula',
+      accessor: 'aula',
+      Cell: ({ row }) => {
+        // Usar el objeto aula incluido en la respuesta de la API
+        if (row.original.aula && typeof row.original.aula === 'object') {
+          return <>{row.original.aula.nombre || `ID: ${row.original.idAula || row.original.id_aula}`}</>;
+        }
+        // Si no está incluido, buscar por ID
+        const aula = aulas.find(a => a.id === (row.original.idAula || row.original.id_aula));
+        return <>{aula?.nombre || `ID: ${row.original.idAula || row.original.id_aula}`}</>;
+      },
+    },
+  ];
+
+  const handleEditClick = (horario: ProgramacionHorario) => {
+    setEditingHorario(horario);
+    setIsEditModalOpen(true);
+  };
+
+  const handleDeleteClick = (horario: ProgramacionHorario) => {
+    setDeletingHorario(horario);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deletingHorario?.id) {
+      try {
+        await onDelete(deletingHorario.id);
+        setIsDeleteModalOpen(false);
+        setDeletingHorario(null);
+      } catch (error) {
+        console.error('Error deleting schedule:', error);
+      }
+    }
+  };
+
+  const handleSaveEdit = async (data: HorarioFormData): Promise<{ success: boolean; error?: string }> => {
+    try {
+      if (editingHorario) {
+        await onEdit({ ...editingHorario, ...data } as ProgramacionHorario);
+        setIsEditModalOpen(false);
+        setEditingHorario(null);
+        return { success: true };
+      }
+      return { success: false, error: 'No se pudo actualizar el horario' };
+    } catch (error) {
+      console.error('Error al guardar los cambios:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Error desconocido al guardar' 
+      };
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -24,175 +190,134 @@ export const ProgramacionHorarioTable: React.FC<ProgramacionHorarioTableProps> =
     );
   }
 
-  if (horarios.length === 0) {
+  if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <svg
-          className="mx-auto h-12 w-12 text-gray-400"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          aria-hidden="true"
-        >
-          <path
-            vectorEffect="non-scaling-stroke"
-            strokeWidth={2}
-            strokeLinecap="round"
-            d="M12 4v16m8-8H4"
-          />
-        </svg>
+        <FiCalendar className="mx-auto h-12 w-12 text-gray-400" />
         <h3 className="mt-2 text-sm font-medium text-gray-900">No hay horarios programados</h3>
         <p className="mt-1 text-sm text-gray-500">
-          Comienza programando un nuevo horario.
+          Comienza creando un nuevo horario.
         </p>
       </div>
     );
   }
 
-  // Función para formatear la hora en formato legible
-  const formatHora = (hora: string) => {
-    try {
-      const [hours, minutes] = hora.split(':');
-      return `${hours}:${minutes}`;
-    } catch (error) {
-      return hora;
-    }
-  };
-
-  // Función para obtener el color del badge según el turno
-  const getTurnoBadge = (turno: string) => {
-    const turnos: Record<string, { bg: string; text: string }> = {
-      'M1': { bg: 'bg-blue-100', text: 'text-blue-800' },
-      'M2': { bg: 'bg-blue-200', text: 'text-blue-900' },
-      'M3': { bg: 'bg-blue-300', text: 'text-blue-900' },
-      'T1': { bg: 'bg-yellow-100', text: 'text-yellow-800' },
-      'T2': { bg: 'bg-yellow-200', text: 'text-yellow-900' },
-      'N1': { bg: 'bg-purple-100', text: 'text-purple-800' },
-      'N2': { bg: 'bg-purple-200', text: 'text-purple-900' },
-    };
-
-    const estilo = turnos[turno] || { bg: 'bg-gray-100', text: 'text-gray-800' };
-    
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${estilo.bg} ${estilo.text}`}>
-        {turno}
-      </span>
-    );
-  };
-
   return (
-    <div className="overflow-x-auto">
-      <div className="inline-block min-w-full align-middle">
-        <div className="overflow-hidden shadow-sm ring-1 ring-black ring-opacity-5 rounded-lg">
-          <table className="min-w-full divide-y divide-gray-300">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  Día y Horario
+    <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 relative">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gradient-to-r from-gray-50 to-gray-75">
+            <tr>
+              {columns.map((column) => (
+                <th key={column.Header} scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider rounded-tl-2xl">
+                  {column.Header}
                 </th>
-                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  Grupo y Asignatura
-                </th>
-                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  Docente
-                </th>
-                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  Aula
-                </th>
-                {showActions && (
-                  <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                    <span className="sr-only">Acciones</span>
-                  </th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {horarios.map((horario) => (
-                <tr key={horario.id} className="hover:bg-gray-50">
-                  <td className="whitespace-nowrap px-3 py-4">
-                    <div className="font-medium text-gray-900">
-                      {horario.dia}
-                    </div>
-                    <div className="text-gray-500 text-sm">
-                      {formatHora(horario.hora_inicio)} - {formatHora(horario.hora_fin)}
-                    </div>
-                    <div className="mt-1">
-                      {getTurnoBadge(horario.turno)}
-                    </div>
-                  </td>
-                  
-                  <td className="whitespace-nowrap px-3 py-4">
-                    <div className="text-gray-900 font-medium">
-                      {horario.grupo?.nombre || `Grupo ${horario.idGrupo}`}
-                    </div>
-                    <div className="text-gray-500 text-sm">
-                      {horario.asignatura?.nombre || `Asignatura ${horario.idAsignatura}`}
-                    </div>
-                    <div className="text-gray-400 text-xs mt-1">
-                      Código: {horario.asignatura?.codigo || 'N/A'}
-                    </div>
-                  </td>
-                  
-                  <td className="whitespace-nowrap px-3 py-4">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 flex-shrink-0 bg-gray-100 rounded-full flex items-center justify-center">
-                        <span className="text-gray-600 font-medium text-sm">
-                          {horario.docente?.nombres?.charAt(0) || 'D'}
-                          {horario.docente?.apellidos?.charAt(0) || 'C'}
-                        </span>
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {horario.docente ? 
-                            `${horario.docente.nombres} ${horario.docente.apellidos}` : 
-                            `Docente ${horario.idDocente}`}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {horario.docente?.email || 'Sin correo'}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  
-                  <td className="whitespace-nowrap px-3 py-4">
-                    <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                      {horario.aula?.nombre || `Aula ${horario.idAula}`}
-                    </div>
-                    <div className="text-gray-500 text-xs mt-1">
-                      Capacidad: {horario.aula?.capacidad || 'N/A'}
-                    </div>
-                  </td>
-                  
-                  {showActions && (
-                    <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                      <div className="flex items-center justify-end space-x-2">
-                        <button
-                          onClick={() => onEdit(horario)}
-                          className="text-blue-600 hover:text-blue-900"
-                          title="Editar"
-                        >
-                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => onDelete(horario.id!)}
-                          className="text-red-600 hover:text-red-900"
-                          title="Eliminar"
-                        >
-                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  )}
-                </tr>
               ))}
-            </tbody>
-          </table>
+              <th scope="col" className="relative px-6 py-4 rounded-tr-2xl">
+                <span className="sr-only">Acciones</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-100">
+            {data.map((horario) => (
+              <tr key={horario.id} className="group bg-white hover:bg-gray-50 transition-all duration-200 hover:shadow-sm">
+                {columns.map((column) => {
+                  const value = column.accessor in horario 
+                    ? horario[column.accessor as keyof ProgramacionHorario] 
+                    : '';
+                  return (
+                    <td key={column.Header} className="px-6 py-5 whitespace-nowrap">
+                      {column.Cell 
+                        ? column.Cell({ row: { original: horario }, value })
+                        : String(value)}
+                    </td>
+                  );
+                })}
+                <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
+                  <div className="flex items-center justify-end space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => handleEditClick(horario)}
+                      className="text-blue-600 hover:text-blue-900 mr-3 focus:outline-none"
+                      title="Editar"
+                    >
+                      <FiEdit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteClick(horario)}
+                      className="text-red-600 hover:text-red-900 focus:outline-none"
+                      title="Eliminar"
+                    >
+                      <FiTrash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      
+      {/* Table Footer */}
+      <div className="bg-gray-50 px-6 py-3 flex items-center justify-between border-t border-gray-100 rounded-b-2xl">
+        <div className="text-sm text-gray-500">
+          Mostrando <span className="font-medium">{data.length}</span> de <span className="font-medium">{data.length}</span> horarios
+        </div>
+        <div className="flex space-x-2">
+          <button 
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 hover:shadow-md"
+          >
+            Anterior
+          </button>
+          <button 
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+          >
+            Siguiente
+          </button>
         </div>
       </div>
+      
+      {/* Modal de edición */}
+      {isEditModalOpen && editingHorario && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-gray-800">Editar Programación de Horario</h2>
+                <button
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <ProgramacionHorarioForm
+                initialData={editingHorario}
+                onSave={handleSaveEdit}
+                onCancel={() => setIsEditModalOpen(false)}
+                isEditing={true}
+                grupos={grupos}
+                asignaturas={asignaturas}
+                docentes={docentes}
+                aulas={aulas}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmación de eliminación */}
+      <DeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        scheduleName={`${deletingHorario?.dia || ''} ${deletingHorario?.hora_inicio || ''} - ${deletingHorario?.hora_fin || ''}`}
+      />
+
     </div>
   );
 };

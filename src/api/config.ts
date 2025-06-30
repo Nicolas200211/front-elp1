@@ -83,6 +83,14 @@ export const API_ENDPOINTS = {
     BY_ID: (id: string | number) => `${API_BASE_URL}/programacion-horarios/${id}`,
     BY_GRUPO: (idGrupo: string | number) => `${API_BASE_URL}/programacion-horarios/grupo/${idGrupo}`,
     BY_DOCENTE: (idDocente: string | number) => `${API_BASE_URL}/programacion-horarios/docente/${idDocente}`,
+    BY_ASIGNATURA: (idAsignatura: string | number) => `${API_BASE_URL}/programacion-horarios/asignatura/${idAsignatura}`,
+    BY_AULA: (idAula: string | number) => `${API_BASE_URL}/programacion-horarios/aula/${idAula}`,
+    BY_DIA: (dia: string) => `${API_BASE_URL}/programacion-horarios/dia/${encodeURIComponent(dia)}`,
+    BY_RANGO_FECHAS: (fechaInicio: string, fechaFin: string) => 
+      `${API_BASE_URL}/programacion-horarios/rango-fechas?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`,
+    VERIFICAR_DISPONIBILIDAD: `${API_BASE_URL}/programacion-horarios/verificar-disponibilidad`,
+    HORARIO_DOCENTE: (idDocente: string | number) => `${API_BASE_URL}/programacion-horarios/docente/${idDocente}/horario`,
+    HORARIO_AULA: (idAula: string | number) => `${API_BASE_URL}/programacion-horarios/aula/${idAula}/horario`,
   },
   
   PROGRAMACION_GENERAL: {
@@ -229,22 +237,36 @@ export interface Estudiante {
   programa?: Programa;
 }
 
+export type Turno = 'Mañana' | 'Tarde' | 'Noche';
+
 export interface ProgramacionHorario {
   id?: number;
-  dia: 'Lunes' | 'Martes' | 'Miércoles' | 'Jueves' | 'Viernes' | 'Sábado' | 'Domingo';
-  hora_inicio: string;
-  hora_fin: string;
-  turno: string;
-  idGrupo: number;
-  idAsignatura: number;
-  idDocente: number;
-  idAula: number;
+  dia: 'Lunes' | 'Martes' | 'Miércoles' | 'Jueves' | 'Viernes' | 'Sábado';
+  hora_inicio: string;  // Format: 'HH:MM:SS'
+  hora_fin: string;     // Format: 'HH:MM:SS'
+  turno: Turno;
+  // Snake case fields (for backward compatibility)
+  id_grupo: number;
+  id_asignatura: number;
+  id_docente: number;
+  id_aula: number;
+  created_at?: string;
+  updated_at?: string;
+  // Camel case fields (from API)
+  idGrupo?: number;
+  idAsignatura?: number;
+  idDocente?: number;
+  idAula?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  // Optional relationships (only when included in the response)
   grupo?: Grupo;
   asignatura?: Asignatura;
   docente?: Docente;
   aula?: Aula;
 }
 
+// ... (rest of the code remains the same)
 export interface Matricula {
   id?: number;
   idEstudiante: number;

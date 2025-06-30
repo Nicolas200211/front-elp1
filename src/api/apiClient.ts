@@ -62,15 +62,44 @@ export async function apiRequest<T>(
 
     // Handle other error statuses
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const errorMessage = errorData.message || 
-                         errorData.error || 
-                         `Error en la solicitud (${response.status})`;
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch (e) {
+        // Si no podemos parsear el JSON, usar un objeto vacío
+        errorData = { message: await response.text() };
+      }
+      
+      // Construir mensaje de error detallado
+      let errorMessage = `Error en la solicitud (${response.status}): `;
+      
+      if (errorData.message) {
+        errorMessage += errorData.message;
+      } else if (errorData.error) {
+        errorMessage += errorData.error;
+      } else {
+        errorMessage += 'Error desconocido';
+      }
+      
+      // Incluir validación de errores si está disponible
+      if (errorData.errors) {
+        errorMessage += '\n' + Object.entries(errorData.errors)
+          .map(([field, message]) => `${field}: ${message}`)
+          .join('\n');
+      }
+      
+      console.error('Error detallado del servidor:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData,
+        url: endpoint,
+        options
+      });
       
       // Show error toast for better user feedback
       if (typeof window !== 'undefined') {
         const { toast } = await import('react-toastify');
-        toast.error(errorMessage);
+        toast.error(errorMessage, { autoClose: 10000 });
       }
       
       throw new Error(errorMessage);
