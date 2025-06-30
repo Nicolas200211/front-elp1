@@ -79,11 +79,11 @@ const AulasPage: React.FC = () => {
     setCurrentAula({
       codigo: '',
       nombre: '',
-      capacidad: 20,
-      tipo: 'Teórica',
+      capacidad: undefined,
+      tipo: undefined,
       descripcion: '',
-      idUnidad: 0,
-      estado: 'Disponible',
+      idUnidad: undefined,
+      estado: undefined,
       tieneEquipamiento: false,
     });
     setIsFormOpen(true);
@@ -196,42 +196,7 @@ const AulasPage: React.FC = () => {
         isOpen={isFormOpen}
         onClose={() => !isSubmitting && setIsFormOpen(false)}
         title={currentAula?.id ? 'Editar Aula' : 'Nueva Aula'}
-        footer={
-          <>
-            <button
-              type="button"
-              onClick={() => !isSubmitting && setIsFormOpen(false)}
-              disabled={isSubmitting}
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '0.375rem',
-                border: '1px solid #d1d5db',
-                backgroundColor: 'white',
-                color: '#374151',
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                opacity: isSubmitting ? 0.5 : 1
-              }}
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={() => currentAula && handleSubmit(currentAula)}
-              disabled={isSubmitting}
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '0.375rem',
-                backgroundColor: isSubmitting ? '#93c5fd' : '#2563eb',
-                color: 'white',
-                border: 'none',
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                opacity: isSubmitting ? 0.7 : 1
-              }}
-            >
-              {isSubmitting ? 'Guardando...' : 'Guardar'}
-            </button>
-          </>
-        }
+        maxWidth="800px"
       >
         {currentAula && (
           <AulaForm 

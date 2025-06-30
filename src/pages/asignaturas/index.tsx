@@ -41,15 +41,54 @@ const AsignaturasPage: React.FC = () => {
       horasPracticas: 0,
       tipo: 'Obligatoria',
       estado: 'Activa',
-      idPrograma: 0,
+      idProgramacionGeneral: 0, // Agregado
       idDocente: 0,
     });
     setIsFormOpen(true);
   };
 
-  const handleEdit = (asignatura: Asignatura) => {
-    setCurrentAsignatura({ ...asignatura });
-    setIsFormOpen(true);
+  const handleEdit = async (asignatura: Asignatura) => {
+    console.log('Iniciando edición de asignatura:', asignatura);
+    try {
+      // Usar los datos que ya tenemos en lugar de hacer una nueva petición
+      const datosActuales = { ...asignatura };
+      
+      console.log('Datos actuales de la asignatura:', datosActuales);
+      
+      // Si faltan datos importantes, intentar cargarlos desde el servidor
+      if (!datosActuales.idProgramacionGeneral || !datosActuales.docente || !datosActuales.unidadAcademica) {
+        try {
+          console.log('Cargando datos adicionales de la asignatura...');
+          const datosCompletos = await asignaturaService.getById(asignatura.id!);
+          console.log('Datos completos cargados:', datosCompletos);
+          
+          // Combinar los datos existentes con los datos cargados
+          Object.assign(datosActuales, datosCompletos);
+        } catch (error) {
+          console.warn('No se pudieron cargar los datos adicionales, usando datos básicos:', error);
+        }
+      }
+      
+      // Preparar los datos para el formulario
+      const datosFormulario: Partial<Asignatura> = {
+        ...datosActuales,
+        // Asegurarnos de que los campos numéricos sean números
+        idProgramacionGeneral: datosActuales.idProgramacionGeneral ? Number(datosActuales.idProgramacionGeneral) : 0,
+        idDocente: datosActuales.idDocente ? Number(datosActuales.idDocente) : 0,
+        idUnidadAcademica: datosActuales.idUnidadAcademica ? Number(datosActuales.idUnidadAcademica) : 0,
+        creditos: datosActuales.creditos ? Number(datosActuales.creditos) : 0,
+        horasTeoricas: datosActuales.horasTeoricas ? Number(datosActuales.horasTeoricas) : 0,
+        horasPracticas: datosActuales.horasPracticas ? Number(datosActuales.horasPracticas) : 0,
+      };
+      
+      console.log('Datos preparados para el formulario:', datosFormulario);
+      
+      setCurrentAsignatura(datosFormulario);
+      setIsFormOpen(true);
+    } catch (error) {
+      console.error('Error al cargar los datos de la asignatura para edición:', error);
+      toast.error('Error al cargar los datos de la asignatura. Intente nuevamente.');
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -71,17 +110,21 @@ const AsignaturasPage: React.FC = () => {
       
       if (formData.id) {
         // Actualizar asignatura existente
-        await asignaturaService.update(formData.id, formData);
+        console.log('Actualizando asignatura con datos:', formData);
+        const updatedAsignatura = await asignaturaService.update(formData.id, formData);
+        console.log('Asignatura actualizada en el servidor:', updatedAsignatura);
         toast.success('Asignatura actualizada correctamente');
       } else {
         // Crear nueva asignatura
+        console.log('Creando nueva asignatura con datos:', formData);
         await asignaturaService.create(formData as Omit<Asignatura, 'id'>);
         toast.success('Asignatura creada correctamente');
       }
       
+      // Forzar una recarga completa de las asignaturas
+      await loadAsignaturas();
       setIsFormOpen(false);
       setCurrentAsignatura(null);
-      loadAsignaturas();
     } catch (error: any) {
       console.error('Error al guardar la asignatura:', error);
       toast.error(error.message || 'Error al guardar la asignatura');
@@ -91,8 +134,8 @@ const AsignaturasPage: React.FC = () => {
   };
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <div className="sm:flex sm:items-center">
+    <div className="py-6 pl-0 pr-4">
+      <div className="sm:flex sm:items-center pl-16 pr-4">
         <div className="sm:flex-auto">
           <h1 className="text-2xl font-semibold text-gray-900">Gestión de Asignaturas</h1>
           <p className="mt-2 text-sm text-gray-700">
@@ -110,63 +153,24 @@ const AsignaturasPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="mt-8">
-        {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          </div>
-        ) : (
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            <AsignaturaTable 
-              asignaturas={asignaturas} 
-              onEdit={handleEdit} 
-              onDelete={handleDelete} 
-            />
-          </div>
-        )}
-      </div>
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      ) : (
+        <AsignaturaTable 
+          asignaturas={asignaturas} 
+          onEdit={handleEdit} 
+          onDelete={handleDelete} 
+        />
+      )}
 
       {/* Modal de formulario */}
       <Modal
         isOpen={isFormOpen}
         onClose={() => !isSubmitting && setIsFormOpen(false)}
         title={currentAsignatura?.id ? 'Editar Asignatura' : 'Nueva Asignatura'}
-        footer={
-          <>
-            <button
-              type="button"
-              onClick={() => !isSubmitting && setIsFormOpen(false)}
-              disabled={isSubmitting}
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '0.375rem',
-                border: '1px solid #d1d5db',
-                backgroundColor: 'white',
-                color: '#374151',
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                opacity: isSubmitting ? 0.5 : 1
-              }}
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={() => currentAsignatura && handleSubmit(currentAsignatura)}
-              disabled={isSubmitting}
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '0.375rem',
-                backgroundColor: isSubmitting ? '#93c5fd' : '#2563eb',
-                color: 'white',
-                border: 'none',
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                opacity: isSubmitting ? 0.7 : 1
-              }}
-            >
-              {isSubmitting ? 'Guardando...' : 'Guardar'}
-            </button>
-          </>
-        }
+        maxWidth="1024px"
       >
         {currentAsignatura && (
           <AsignaturaForm
@@ -174,6 +178,7 @@ const AsignaturasPage: React.FC = () => {
             onSubmit={handleSubmit}
             isEditing={!!currentAsignatura.id}
             onCancel={() => !isSubmitting && setIsFormOpen(false)}
+            isSubmitting={isSubmitting}
           />
         )}
       </Modal>

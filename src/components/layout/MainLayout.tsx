@@ -18,9 +18,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             </svg>
           </button>
         </div>
-        <main className="flex-1 relative z-0 overflow-y-auto focus:outline-none">
+        <main className="flex-1 relative z-0 overflow-y-auto focus:outline-none overflow-x-hidden">
           <div className="py-6">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+            <div className="w-full px-0">
               {children}
             </div>
           </div>

@@ -32,124 +32,155 @@ const getEstadoBadgeClass = (estado: string) => {
   return estados[estado] || 'bg-gray-100 text-gray-800';
 };
 
-// Function to get full teacher name
-const getNombreDocente = (docente: { nombres?: string; nombre?: string; apellidos?: string }) => {
-  if (!docente) return '';
-  return `${docente.nombres || docente.nombre || ''} ${docente.apellidos || ''}`.trim();
-};
+// La función getNombreDocente fue eliminada ya que no se está utilizando
 
 export const AsignaturaTable: React.FC<AsignaturaTableProps> = ({
   asignaturas = [],
   onEdit,
   onDelete,
 }) => {
+  // Depuración: Mostrar los datos de las asignaturas en consola
+  React.useEffect(() => {
+    console.log('Datos de asignaturas en la tabla:', asignaturas);
+    if (asignaturas.length > 0 && asignaturas[0].docente) {
+      console.log('Primer docente:', asignaturas[0].docente);
+    }
+  }, [asignaturas]);
   return (
-    <div className="flow-root">
-      <div className="overflow-x-auto">
-        <div className="inline-block min-w-full align-middle">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Asignatura
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Detalles
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Docente
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Estado
-                </th>
-                <th scope="col" className="relative px-6 py-3">
-                  <span className="sr-only">Acciones</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {asignaturas.length > 0 ? (
-                asignaturas.map((asignatura) => (
-                  <tr key={asignatura.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10 bg-indigo-100 rounded-md flex items-center justify-center">
-                          <span className="text-indigo-700 font-medium text-sm">{asignatura.codigo}</span>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{asignatura.nombre}</div>
-                          <div className="text-sm text-gray-500">{asignatura.tipo}</div>
-                        </div>
+    <div className="w-full overflow-x-auto pl-16 pr-8">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <table className="min-w-[1200px] w-full divide-y divide-gray-100">
+          <thead className="bg-gray-50">
+            <tr>
+              <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                Código
+              </th>
+              <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64">
+                Asignatura
+              </th>
+              <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                Tipo
+              </th>
+              <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
+                Horas
+              </th>
+              <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-72">
+                Docente
+              </th>
+              <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64">
+                Unidad Académica
+              </th>
+              <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                Estado
+              </th>
+              <th scope="col" className="relative px-6 py-4 w-32">
+                <span className="sr-only">Acciones</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-100">
+            {asignaturas.length > 0 ? (
+              asignaturas.map((asignatura) => (
+                <tr 
+                  key={asignatura.id} 
+                  className="hover:bg-gray-50/80 transition-colors duration-150"
+                >
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900 font-mono">{asignatura.codigo}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm font-semibold text-gray-900">{asignatura.nombre}</div>
+                    <div className="text-xs text-gray-500 mt-1">{asignatura.creditos} créditos</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                      {asignatura.tipo}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="space-y-1">
+                      <div className="flex items-center text-sm text-gray-700">
+                        <span className="w-24 text-gray-500">Teóricas:</span>
+                        <span className="font-medium">{asignatura.horasTeoricas}h</span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{asignatura.creditos} créditos</div>
-                      <div className="text-sm text-gray-500">
-                        {asignatura.horasTeoricas}h teóricas • {asignatura.horasPracticas}h prácticas
+                      <div className="flex items-center text-sm text-gray-700">
+                        <span className="w-24 text-gray-500">Prácticas:</span>
+                        <span className="font-medium">{asignatura.horasPracticas}h</span>
                       </div>
-                      {asignatura.programa && (
-                        <div className="text-sm text-gray-500">
-                          {asignatura.programa.nombre}
+                      <div className="flex items-center text-sm font-medium text-gray-900 pt-1 border-t border-gray-100">
+                        <span className="w-24">Total:</span>
+                        <span>{asignatura.horasTeoricas + asignatura.horasPracticas}h</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    {asignatura.docente ? (
+                      <div className="flex items-center group">
+                        <div className="h-9 w-9 rounded-full bg-gradient-to-br from-indigo-100 to-blue-100 flex items-center justify-center text-indigo-700 text-sm font-medium flex-shrink-0 ring-2 ring-white shadow-sm">
+                          {asignatura.docente.nombres?.charAt(0) || asignatura.docente.nombre?.charAt(0) || ''}
+                          {asignatura.docente.apellidos?.charAt(0) || asignatura.docente.apellido?.charAt(0) || ''}
                         </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {asignatura.docente ? (
-                        <div className="flex items-center">
-                          <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-sm font-medium">
-                            {(asignatura.docente.nombres?.charAt(0) || asignatura.docente.nombre?.charAt(0) || '')}
-                            {(asignatura.docente.apellidos?.charAt(0) || '')}
+                        <div className="ml-3 min-w-0">
+                          <div className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-600 transition-colors">
+                            {asignatura.docente.nombres || asignatura.docente.nombre || ''} {asignatura.docente.apellidos || asignatura.docente.apellido || ''}
                           </div>
-                          <div className="ml-3">
-                            <div className="text-sm font-medium text-gray-900">
-                              {getNombreDocente(asignatura.docente)}
+                          {asignatura.docente.email && (
+                            <div className="text-xs text-gray-500 truncate">
+                              {asignatura.docente.email}
                             </div>
-                            {asignatura.docente.email && (
-                              <div className="text-xs text-gray-500">
-                                {asignatura.docente.email}
-                              </div>
-                            )}
-                          </div>
+                          )}
                         </div>
-                      ) : asignatura.idDocente ? (
-                        <span className="text-sm text-gray-500">
-                          Docente ID: {asignatura.idDocente}
-                        </span>
-                      ) : (
-                        <span className="text-sm text-gray-500 italic">Sin asignar</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getEstadoBadgeClass(asignatura.estado)}`}>
-                        {asignatura.estado}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end space-x-2">
-                        <button
-                          onClick={() => onEdit(asignatura)}
-                          className="text-indigo-600 hover:text-indigo-900"
-                          title="Editar"
-                        >
-                          <PencilIcon />
-                        </button>
-                        <button
-                          onClick={() => asignatura.id && onDelete(asignatura.id)}
-                          className="text-red-600 hover:text-red-900"
-                          title="Eliminar"
-                        >
-                          <TrashIcon />
-                        </button>
                       </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
-                    <div className="py-8">
+                    ) : asignatura.idDocente ? (
+                      <div className="text-sm text-gray-500 italic">
+                        Docente ID: {asignatura.idDocente}
+                      </div>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                        Sin asignar
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm font-medium text-gray-900">
+                      {asignatura.unidadAcademica?.nombre || 'N/A'}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      ID: {asignatura.idUnidadAcademica || 'N/A'}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getEstadoBadgeClass(asignatura.estado)}`}>
+                      {asignatura.estado}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex justify-end space-x-2">
+                      <button
+                        onClick={() => onEdit(asignatura)}
+                        className="text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 p-1.5 rounded-full transition-colors duration-150"
+                        title="Editar"
+                      >
+                        <PencilIcon />
+                      </button>
+                      <button
+                        onClick={() => asignatura.id && onDelete(asignatura.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-full transition-colors duration-150"
+                        title="Eliminar"
+                      >
+                        <TrashIcon />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={8} className="px-6 py-12 text-center">
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="bg-gray-50 p-4 rounded-full mb-3">
                       <svg
-                        className="mx-auto h-12 w-12 text-gray-400"
+                        className="h-8 w-8 text-gray-400"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -161,17 +192,17 @@ export const AsignaturaTable: React.FC<AsignaturaTableProps> = ({
                           d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                         />
                       </svg>
-                      <h3 className="mt-2 text-sm font-medium text-gray-900">No hay asignaturas</h3>
-                      <p className="mt-1 text-sm text-gray-500">
-                        Comienza creando una nueva asignatura
-                      </p>
                     </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-1">No hay asignaturas</h3>
+                    <p className="text-gray-500 max-w-md">
+                      No se encontraron asignaturas. Comienza creando una nueva asignatura para verla aquí.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

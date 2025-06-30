@@ -2,6 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 // Importaciones de componentes
 import { ProgramacionHorarioTable } from '../../components/programacion-horarios/ProgramacionHorarioTable';
 import { programacionHorarioService } from '../../api/programacionHorarioService';
+import { grupoService } from '../../api/grupoService';
+import { docenteService } from '../../api/docenteService';
+import { aulaService } from '../../api/aulaService';
+import { asignaturaService } from '../../api/asignaturaService';
 import type { 
   ProgramacionHorario, 
   Grupo, 
@@ -29,13 +33,19 @@ const ProgramacionHorariosPage: React.FC = () => {
   const [filtroAula, setFiltroAula] = useState<string>('');
   
   // Opciones para los filtros
-  const [opciones, setOpciones] = useState({
-    dias: [] as string[],
-    turnos: [] as string[],
-    grupos: [] as Grupo[],
-    docentes: [] as Docente[],
-    aulas: [] as Aula[],
-    asignaturas: [] as Asignatura[]
+  const [opciones, setOpciones] = useState<{
+    dias: string[];
+    turnos: string[];
+    grupos: Grupo[];
+    docentes: Docente[];
+    aulas: Aula[];
+    asignaturas?: Asignatura[];
+  }>({
+    dias: [],
+    turnos: [],
+    grupos: [],
+    docentes: [],
+    aulas: []
   });
   
   // Datos simulados
@@ -43,12 +53,11 @@ const ProgramacionHorariosPage: React.FC = () => {
     grupos: Grupo[];
     docentes: Docente[];
     aulas: Aula[];
-    asignaturas: Asignatura[];
+    asignaturas?: Asignatura[];
   }>({
     grupos: [],
     docentes: [],
-    aulas: [],
-    asignaturas: []
+    aulas: []
   });
 
   // Cargar datos iniciales
@@ -59,134 +68,32 @@ const ProgramacionHorariosPage: React.FC = () => {
         // Cargar opciones para los filtros
         const opcionesData = await programacionHorarioService.getOpciones();
         
-        // Simular carga de grupos, docentes y aulas (en una implementación real, estos vendrían de la API)
-        const gruposSimulados: Grupo[] = [
-          { 
-            id: 1, 
-            nombre: 'Grupo A',
-            capacidad: 30,
-            idCiclo: 1,
-            idPrograma: 1,
-            estado: 'Activo'
-          },
-          { 
-            id: 2, 
-            nombre: 'Grupo B',
-            capacidad: 25,
-            idCiclo: 1,
-            idPrograma: 1,
-            estado: 'Activo'
-          },
-        ];
-        
-        const docentesSimulados: Docente[] = [
-          { 
-            id: 1, 
-            nombre: 'Juan Pérez', 
-            email: 'juan@example.com',
-            especialidad: 'Matemáticas',
-            telefono: '123456789',
-            direccion: 'Calle 123',
-            estado: 'Activo',
-            nombres: 'Juan',
-            apellidos: 'Pérez',
-            dni: '12345678',
-            genero: 'M',
-            tipoContrato: 'Tiempo Completo',
-            horasDisponibles: 40,
-            tituloAcademico: 'Magíster en Educación',
-            fechaIngreso: '2020-01-15'
-          },
-          { 
-            id: 2, 
-            nombre: 'María González', 
-            email: 'maria@example.com',
-            especialidad: 'Lenguaje',
-            telefono: '987654321',
-            direccion: 'Avenida 456',
-            estado: 'Activo',
-            nombres: 'María',
-            apellidos: 'González',
-            dni: '87654321',
-            genero: 'F',
-            tipoContrato: 'Tiempo Parcial',
-            horasDisponibles: 20,
-            tituloAcademico: 'Licenciada en Letras',
-            fechaIngreso: '2019-08-10'
-          },
-        ];
-        
-        const aulasSimuladas: Aula[] = [
-          { 
-            id: 1, 
-            nombre: 'Aula 101', 
-            codigo: 'A101',
-            tipo: 'Teórica',
-            capacidad: 30,
-            idUnidad: 1,
-            estado: 'Disponible',
-            tieneEquipamiento: true
-          },
-          { 
-            id: 2, 
-            nombre: 'Aula 102', 
-            codigo: 'A102',
-            tipo: 'Laboratorio',
-            capacidad: 25,
-            idUnidad: 1,
-            estado: 'Disponible',
-            tieneEquipamiento: true
-          },
-        ];
-        
-        // Crear datos de asignaturas simuladas
-        const asignaturasSimuladas: Asignatura[] = [
-          {
-            id: 1,
-            nombre: 'Matemáticas',
-            codigo: 'MAT101',
-            creditos: 4,
-            horasTeoricas: 3,
-            horasPracticas: 2,
-            tipo: 'Obligatoria',
-            estado: 'Activo',
-            idPrograma: 1,
-            idDocente: 1,
-            idUnidadAcademica: 1
-          },
-          {
-            id: 2,
-            nombre: 'Lenguaje',
-            codigo: 'LEN201',
-            creditos: 3,
-            horasTeoricas: 2,
-            horasPracticas: 2,
-            tipo: 'Obligatoria',
-            estado: 'Activo',
-            idPrograma: 1,
-            idDocente: 2,
-            idUnidadAcademica: 1
-          },
-        ];
+        // Cargar datos reales de la API
+        const [grupos, docentes, aulas, asignaturas] = await Promise.all([
+          grupoService.getAll(),
+          docenteService.getAll(),
+          aulaService.getAll(),
+          asignaturaService.getAll()
+        ]);
         
         setOpciones({
-          dias: opcionesData.dias,
-          turnos: opcionesData.turnos,
-          grupos: gruposSimulados,
-          docentes: docentesSimulados,
-          aulas: aulasSimuladas,
-          asignaturas: asignaturasSimuladas
+          dias: opcionesData.dias || [],
+          turnos: opcionesData.turnos || [],
+          grupos: grupos || [],
+          docentes: docentes || [],
+          aulas: aulas || [],
+          asignaturas: asignaturas || []
         });
         
         setDatosSimulados({
-          grupos: gruposSimulados,
-          docentes: docentesSimulados,
-          aulas: aulasSimuladas,
-          asignaturas: asignaturasSimuladas
+          grupos: grupos || [],
+          docentes: docentes || [],
+          aulas: aulas || [],
+          asignaturas: asignaturas || []
         });
         
         // Cargar horarios
-        await cargarHorarios(gruposSimulados, docentesSimulados, aulasSimuladas, asignaturasSimuladas);
+        await cargarHorarios(grupos || [], docentes || [], aulas || [], asignaturas || []);
       } catch (error) {
         console.error('Error al cargar datos iniciales:', error);
         toast.error('Error al cargar los datos iniciales');
@@ -203,84 +110,58 @@ const ProgramacionHorariosPage: React.FC = () => {
     grupos: Grupo[],
     docentes: Docente[],
     aulas: Aula[],
-    asignaturas: Asignatura[]
+    asignaturas: Asignatura[] = []
   ) => {
     try {
       setIsLoading(true);
       
-      // En una implementación real, aquí se haría la llamada a la API con los filtros
-      // Por ahora simulamos datos de ejemplo
-      const data: ProgramacionHorario[] = [
-        {
-          id: 1,
-          dia: 'Lunes',
-          hora_inicio: '08:00:00',
-          hora_fin: '10:00:00',
-          turno: 'M1',
-          idGrupo: 1,
-          idAsignatura: 1,
-          idDocente: 1,
-          idAula: 1,
-          grupo: grupos[0],
-          asignatura: asignaturas[0],
-          docente: docentes[0],
-          aula: aulas[0]
-        },
-        {
-          id: 2,
-          dia: 'Miércoles',
-          hora_inicio: '14:00:00',
-          hora_fin: '16:00:00',
-          turno: 'T1',
-          idGrupo: 2,
-          idAsignatura: 2,
-          idDocente: 2,
-          idAula: 2,
-          grupo: grupos[1],
-          asignatura: asignaturas[1],
-          docente: docentes[1],
-          aula: aulas[1]
-        },
-      ];
+      // Obtener horarios de la API
+      // Primero obtenemos todos los horarios y luego aplicamos los filtros localmente
+      // ya que el servicio no tiene un método getHorarios con filtros
+      const allHorarios = await programacionHorarioService.getAll();
       
-      // Aplicar filtros
-      let filteredData = [...data];
+      // Aplicar filtros localmente
+      let horarios = [...allHorarios];
       
       if (filtroDia) {
-        filteredData = filteredData.filter(h => h.dia === filtroDia);
+        horarios = horarios.filter(h => h.dia === filtroDia);
       }
       
       if (filtroTurno) {
-        filteredData = filteredData.filter(h => h.turno === filtroTurno);
+        horarios = horarios.filter(h => h.turno === filtroTurno);
       }
       
       if (filtroGrupo) {
-        filteredData = filteredData.filter(h => h.idGrupo === Number(filtroGrupo));
+        horarios = horarios.filter(h => h.idGrupo === Number(filtroGrupo));
       }
       
       if (filtroDocente) {
-        filteredData = filteredData.filter(h => h.idDocente === Number(filtroDocente));
+        horarios = horarios.filter(h => h.idDocente === Number(filtroDocente));
       }
       
       if (filtroAula) {
-        filteredData = filteredData.filter(h => h.idAula === Number(filtroAula));
+        horarios = horarios.filter(h => h.idAula === Number(filtroAula));
       }
       
       // Búsqueda por texto
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        filteredData = filteredData.filter(h => 
-          h.dia.toLowerCase().includes(query) ||
-          h.turno.toLowerCase().includes(query) ||
-          (h.grupo?.nombre?.toLowerCase().includes(query) || '') ||
-          (h.asignatura?.nombre?.toLowerCase().includes(query) || '') ||
-          (h.docente?.nombres?.toLowerCase().includes(query) || '') ||
-          (h.docente?.apellidos?.toLowerCase().includes(query) || '') ||
-          (h.aula?.nombre?.toLowerCase().includes(query) || '')
+        horarios = horarios.filter(h => 
+          (h.dia?.toLowerCase().includes(query) || false) ||
+          (h.turno?.toLowerCase().includes(query) || false)
         );
       }
       
-      setHorarios(filteredData);
+      // Mapear los datos para incluir las relaciones
+      const horariosConRelaciones = horarios.map(horario => ({
+        ...horario,
+        grupo: grupos.find(g => g.id === horario.idGrupo),
+        docente: docentes.find(d => d.id === horario.idDocente),
+        aula: aulas.find(a => a.id === horario.idAula),
+        asignatura: asignaturas.find(a => a.id === horario.idAsignatura)
+      }));
+      
+      setHorarios(horariosConRelaciones);
     } catch (error) {
       console.error('Error al cargar los horarios:', error);
       toast.error('Error al cargar los horarios');
@@ -296,7 +177,7 @@ const ProgramacionHorariosPage: React.FC = () => {
         datosSimulados.grupos,
         datosSimulados.docentes,
         datosSimulados.aulas,
-        datosSimulados.asignaturas
+        datosSimulados.asignaturas || []
       );
     }
   }, [cargarHorarios, datosSimulados]);
@@ -335,7 +216,7 @@ const ProgramacionHorariosPage: React.FC = () => {
             datosSimulados.grupos,
             datosSimulados.docentes,
             datosSimulados.aulas,
-            datosSimulados.asignaturas
+            datosSimulados.asignaturas || []
           );
         }
       } catch (error) {

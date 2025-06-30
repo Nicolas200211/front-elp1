@@ -1,6 +1,7 @@
-import { API_ENDPOINTS } from './config';
-import type { Asignatura } from './config';
 import { api } from './apiClient';
+import { API_ENDPOINTS } from './config';
+import type { Asignatura, Docente } from './config';
+import { docenteService } from './docenteService';
 
 export const asignaturaService = {
   /**
@@ -8,15 +9,113 @@ export const asignaturaService = {
    * @returns Promise<Asignatura[]> Lista de asignaturas
    */
   async getAll(): Promise<Asignatura[]> {
+    console.log('[asignaturaService] Obteniendo todas las asignaturas');
     try {
-      const response = await api.get(API_ENDPOINTS.ASIGNATURAS.BASE);
-      // Handle response with data and meta properties
-      if (response && typeof response === 'object' && 'data' in response) {
-        return Array.isArray(response.data) ? response.data : [];
+      // Obtener las asignaturas y los docentes en paralelo
+      const [asignaturasResponse, docentesResponse] = await Promise.all([
+        api.get(API_ENDPOINTS.ASIGNATURAS.BASE) as Promise<any>,
+        docenteService.getAll() as Promise<any>
+      ]);
+      
+      console.log('[asignaturaService] Respuesta de asignaturas:', asignaturasResponse);
+      console.log('[asignaturaService] Respuesta de docentes:', docentesResponse);
+      
+      let asignaturas: Asignatura[] = [];
+      let docentes: Docente[] = [];
+      
+      // Manejar la respuesta de docentes que puede venir en diferentes formatos
+      if (Array.isArray(docentesResponse)) {
+        docentes = docentesResponse as Docente[];
+      } else if (docentesResponse && typeof docentesResponse === 'object') {
+        const response = docentesResponse as any;
+        if ('data' in response) {
+          if (Array.isArray(response.data)) {
+            docentes = response.data as Docente[];
+          } else if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+            docentes = Array.isArray(response.data.data) ? (response.data.data as Docente[]) : [];
+          }
+        }
       }
+      
+      // Manejar la respuesta de asignaturas que puede venir en diferentes formatos
+      if (Array.isArray(asignaturasResponse)) {
+        console.log('[asignaturaService] La respuesta es un array de asignaturas');
+        asignaturas = asignaturasResponse as Asignatura[];
+      } else if (asignaturasResponse && typeof asignaturasResponse === 'object') {
+        const response = asignaturasResponse as any;
+        if ('data' in response) {
+          if (Array.isArray(response.data)) {
+            console.log('[asignaturaService] La respuesta contiene un array de asignaturas en la propiedad data');
+            asignaturas = response.data as Asignatura[];
+          } else if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+            // Caso donde la respuesta está en data.data (común en respuestas paginadas)
+            asignaturas = Array.isArray(response.data.data) ? (response.data.data as Asignatura[]) : [];
+          }
+        }
+      }
+      
+      console.log('[asignaturaService] Datos de asignaturas antes de mapear:', asignaturas);
+      console.log('[asignaturaService] Datos de docentes disponibles:', docentes);
+      
+      // Crear un mapa de docentes por ID para búsqueda rápida
+      const docentesMap = new Map<number, Docente>();
+      docentes.forEach(docente => {
+        if (docente.id) {
+          docentesMap.set(docente.id, {
+            ...docente,
+            // Asegurarse de que los campos requeridos estén presentes
+            nombre: docente.nombres || docente.nombre || '',
+            nombres: docente.nombres || docente.nombre || '',
+            apellidos: docente.apellidos || '',
+            email: docente.email || '',
+            estado: docente.estado || 'Activo',
+            genero: docente.genero || 'O',
+            especialidad: docente.especialidad || '',
+            tipoContrato: docente.tipoContrato || 'Tiempo completo',
+            horasDisponibles: docente.horasDisponibles || 0
+          });
+        }
+      });
+      
+      // Mapear las asignaturas con los datos de los docentes
+      const asignaturasConDocentes = asignaturas.map(asignatura => {
+        const docenteCompleto = asignatura.idDocente ? docentesMap.get(asignatura.idDocente) : null;
+        
+        // Crear un objeto docente compatible con la interfaz esperada
+        let docente: any = null;
+        
+        if (docenteCompleto) {
+          docente = {
+            id: docenteCompleto.id,
+            nombre: docenteCompleto.nombres || docenteCompleto.nombre || 'Docente',
+            nombres: docenteCompleto.nombres || docenteCompleto.nombre || 'Docente',
+            apellidos: docenteCompleto.apellidos || `ID: ${asignatura.idDocente}`,
+            email: docenteCompleto.email || ''
+          };
+        } else if (asignatura.idDocente) {
+          // Si solo tenemos el ID del docente
+          docente = {
+            id: asignatura.idDocente,
+            nombre: 'Docente',
+            nombres: 'Docente',
+            apellidos: `ID: ${asignatura.idDocente}`,
+            email: ''
+          };
+        }
+        
+        return {
+          ...asignatura,
+          docente: docente || undefined
+        } as Asignatura;
+      });
+      
+      console.log('[asignaturaService] Asignaturas con docentes:', asignaturasConDocentes);
+      return asignaturasConDocentes;
+      
+      console.warn('[asignaturaService] Formato de respuesta inesperado, devolviendo array vacío');
       return [];
     } catch (error) {
-      console.error('Error al obtener las asignaturas:', error);
+      console.error('[asignaturaService] Error al obtener las asignaturas:', error);
       throw new Error('No se pudieron cargar las asignaturas. Por favor, intente nuevamente.');
     }
   },
@@ -27,15 +126,44 @@ export const asignaturaService = {
    * @returns Promise<Asignatura> Datos de la asignatura
    */
   async getById(id: string | number): Promise<Asignatura> {
+    console.log(`[asignaturaService] Obteniendo asignatura con ID: ${id}`);
     try {
       const response = await api.get(API_ENDPOINTS.ASIGNATURAS.BY_ID(id));
-      // Handle response with data property
-      if (response && typeof response === 'object' && 'data' in response) {
-        return response.data as Asignatura;
+      console.log(`[asignaturaService] Respuesta para ID ${id}:`, response);
+      
+      let asignatura: Asignatura | null = null;
+      
+      // Verificar si la respuesta es la asignatura directamente
+      if (response && typeof response === 'object' && 'id' in response) {
+        console.log('[asignaturaService] Se recibió la asignatura directamente');
+        asignatura = response as Asignatura;
       }
-      throw new Error('No se encontraron datos de la asignatura');
+      // O si está en la propiedad data
+      else if (response && typeof response === 'object' && 'data' in response) {
+        console.log('[asignaturaService] Se recibió la asignatura en la propiedad data');
+        asignatura = response.data as Asignatura;
+      }
+      
+      if (!asignatura) {
+        throw new Error('No se encontró la asignatura solicitada');
+      }
+      
+      // Asegurar que los datos del docente tengan la estructura correcta
+      if (asignatura.docente) {
+        asignatura.docente = {
+          id: asignatura.docente.id,
+          nombres: asignatura.docente.nombres || asignatura.docente.nombre || '',
+          apellidos: asignatura.docente.apellidos || asignatura.docente.apellido || '',
+          email: asignatura.docente.email || ''
+        };
+      }
+      
+      return asignatura;
+      
+      console.error('[asignaturaService] Formato de respuesta inesperado:', response);
+      throw new Error('Formato de respuesta inesperado al cargar la asignatura');
     } catch (error) {
-      console.error(`Error al obtener la asignatura con ID ${id}:`, error);
+      console.error(`[asignaturaService] Error al obtener la asignatura con ID ${id}:`, error);
       throw new Error('No se pudo cargar la asignatura. Por favor, verifique el ID e intente nuevamente.');
     }
   },
@@ -76,12 +204,64 @@ export const asignaturaService = {
    */
   async update(id: string | number, asignatura: Partial<Asignatura>): Promise<Asignatura> {
     try {
-      const response = await api.patch(API_ENDPOINTS.ASIGNATURAS.BY_ID(id), asignatura);
-      // Handle response with data property
-      if (response && typeof response === 'object' && 'data' in response) {
-        return response.data as Asignatura;
+      console.log('Enviando datos al servidor (asignaturaService):', asignatura);
+      
+      // Crear un objeto con solo los campos permitidos (excluyendo el ID)
+      const camposPermitidos = [
+        'codigo', 'nombre', 'creditos', 'horas_teoricas',
+        'horas_practicas', 'tipo', 'estado', 'id_programa',
+        'id_docente', 'id_unidad_academica'
+      ];
+      
+      const datosActualizados: Record<string, any> = {};
+      
+      // Incluir siempre el campo 'tipo' si está presente, incluso si es una cadena vacía
+      if ('tipo' in asignatura) {
+        datosActualizados['tipo'] = asignatura.tipo || '';
       }
-      throw new Error('No se recibieron datos de la asignatura actualizada');
+      
+      // Filtrar solo los campos permitidos y que no sean undefined
+      Object.entries(asignatura).forEach(([key, value]) => {
+        if (key !== 'tipo' && camposPermitidos.includes(key) && value !== undefined) {
+          datosActualizados[key] = value;
+        }
+      });
+      
+      console.log('Datos filtrados para actualización:', datosActualizados);
+      
+      const response = await api.patch(API_ENDPOINTS.ASIGNATURAS.BY_ID(id), datosActualizados);
+      
+      console.log('Respuesta del servidor:', response);
+      
+      // Si la respuesta es exitosa pero no tiene datos, devolvemos los datos que enviamos
+      let asignaturaActualizada: Asignatura;
+      
+      if (response) {
+        // Si la respuesta tiene una propiedad 'data', la usamos
+        if (typeof response === 'object' && 'data' in response) {
+          asignaturaActualizada = response.data as Asignatura;
+        } else {
+          // Si no, usamos la respuesta completa
+          asignaturaActualizada = response as unknown as Asignatura;
+        }
+        
+        // Asegurarnos de que el campo 'tipo' esté presente en la respuesta
+        if (asignaturaActualizada && typeof asignaturaActualizada === 'object') {
+          // Si el tipo no está en la respuesta pero sí en los datos enviados, lo mantenemos
+          if (!asignaturaActualizada.tipo && datosActualizados.tipo !== undefined) {
+            asignaturaActualizada.tipo = datosActualizados.tipo;
+          }
+          return asignaturaActualizada;
+        }
+      }
+      
+      // Si no hay respuesta válida, devolvemos los datos que enviamos con el ID
+      // asegurándonos de incluir el tipo
+      return { 
+        ...datosActualizados, 
+        id,
+        tipo: datosActualizados.tipo || '' // Asegurar que tipo tenga un valor por defecto
+      } as unknown as Asignatura;
     } catch (error) {
       console.error(`Error al actualizar la asignatura con ID ${id}:`, error);
       throw new Error('No se pudo actualizar la asignatura. Verifique los datos e intente nuevamente.');
@@ -103,22 +283,30 @@ export const asignaturaService = {
   },
 
   /**
-   * Obtener asignaturas por programa académico
-   * @param programaId ID del programa académico
-   * @returns Promise<Asignatura[]> Lista de asignaturas del programa
+   * Obtener asignaturas por programación general
+   * @param programacionId ID de la programación general
+   * @returns Promise<Asignatura[]> Lista de asignaturas de la programación
    */
-  async getByPrograma(programaId: string | number): Promise<Asignatura[]> {
+  async getByProgramacion(programacionId: string | number): Promise<Asignatura[]> {
     try {
-      const response = await api.get(API_ENDPOINTS.ASIGNATURAS.BY_PROGRAMA(programaId));
+      const response = await api.get(`${API_ENDPOINTS.ASIGNATURAS.BASE}?idProgramacionGeneral=${programacionId}`);
       // Handle response with data and meta properties
       if (response && typeof response === 'object' && 'data' in response) {
         return Array.isArray(response.data) ? response.data : [];
       }
       return [];
     } catch (error) {
-      console.error(`Error al obtener las asignaturas del programa ${programaId}:`, error);
-      throw new Error('No se pudieron cargar las asignaturas del programa. Por favor, intente nuevamente.');
+      console.error(`Error al obtener asignaturas de la programación ${programacionId}:`, error);
+      throw new Error('No se pudieron cargar las asignaturas de la programación. Por favor, intente nuevamente.');
     }
+  },
+
+  /**
+   * @deprecated Usar getByProgramacion en su lugar
+   */
+  async getByPrograma(programaId: string | number): Promise<Asignatura[]> {
+    console.warn('El método getByPrograma está obsoleto. Use getByProgramacion en su lugar.');
+    return this.getByProgramacion(programaId);
   },
 
   /**

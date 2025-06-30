@@ -301,11 +301,11 @@ export interface Asignatura {
   horasPracticas: number;
   tipo: string;
   estado: string;
-  idPrograma: number;
+  idProgramacion?: number;  // Nuevo campo para compatibilidad con la API
+  idProgramacionGeneral: number;
   idDocente: number;
   idUnidadAcademica?: number;
-  // Campos opcionales que podrían venir de relaciones
-  programa?: {
+  programacionGeneral?: {
     id: number;
     nombre: string;
   };
