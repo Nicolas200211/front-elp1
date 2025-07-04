@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { FiX, FiClock, FiCalendar, FiUsers, FiBook, FiUser, FiHome } from 'react-icons/fi';
+import { FiClock, FiCalendar, FiUsers, FiBook, FiUser, FiHome } from 'react-icons/fi';
 import type { 
   Grupo, 
   Asignatura, 
@@ -224,20 +224,6 @@ const ProgramacionHorarioForm: React.FC<ProgramacionHorarioFormProps> = ({
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-800">
-            {isEditing ? 'Editar Horario' : 'Nuevo Horario'}
-          </h2>
-          <button
-            onClick={onCancel}
-            className="text-gray-400 hover:text-gray-500 focus:outline-none"
-          >
-            <FiX className="h-6 w-6" />
-          </button>
-        </div>
-      </div>
-      
       <div className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

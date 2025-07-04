@@ -17,7 +17,7 @@ const TrashIcon = () => (
 interface AsignaturaTableProps {
   asignaturas: Asignatura[];
   onEdit: (asignatura: Asignatura) => void;
-  onDelete: (id: number) => void;
+  onDelete: (asignatura: Asignatura) => void;
 }
 
 // Function to get status badge style
@@ -164,7 +164,7 @@ export const AsignaturaTable: React.FC<AsignaturaTableProps> = ({
                         <PencilIcon />
                       </button>
                       <button
-                        onClick={() => asignatura.id && onDelete(asignatura.id)}
+                        onClick={() => onDelete(asignatura)}
                         className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-full transition-colors duration-150"
                         title="Eliminar"
                       >

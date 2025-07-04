@@ -187,10 +187,21 @@ const ProgramacionHorariosPage: React.FC = () => {
       
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        horarios = horarios.filter(h => 
-          (h.dia?.toLowerCase().includes(query) || false) ||
-          (h.turno?.toLowerCase().includes(query) || false)
-        );
+        horarios = horarios.filter(h => {
+          // Buscar en los campos principales
+          const enDia = h.dia?.toLowerCase().includes(query) || false;
+          const enTurno = h.turno?.toLowerCase().includes(query) || false;
+          
+          // Buscar en las relaciones
+          const enGrupo = h.grupo?.nombre?.toLowerCase().includes(query) || false;
+          const enDocente = (
+            (h.docente?.nombres?.toLowerCase().includes(query) || false) ||
+            (h.docente?.apellidos?.toLowerCase().includes(query) || false)
+          );
+          const enAula = h.aula?.nombre?.toLowerCase().includes(query) || false;
+          
+          return enDia || enTurno || enGrupo || enDocente || enAula;
+        });
       }
       
       const horariosConRelaciones = horarios.map(horario => ({
@@ -236,13 +247,14 @@ const ProgramacionHorariosPage: React.FC = () => {
   };
 
   // Manejar el guardado de un nuevo horario
-  const handleSaveHorario = async (formData: Omit<ProgramacionHorario, 'id' | 'created_at' | 'updated_at'>) => {
+  const handleSaveHorario = async (formData: Omit<ProgramacionHorario, 'id' | 'created_at' | 'updated_at'>): Promise<{ success: boolean; error?: string }> => {
     // Validar que todos los campos requeridos estén presentes
     if (!formData.dia || !formData.hora_inicio || !formData.hora_fin || 
         !formData.turno || !formData.id_grupo || !formData.id_asignatura || 
         !formData.id_docente || !formData.id_aula) {
-      toast.error('Por favor complete todos los campos requeridos');
-      return;
+      const errorMsg = 'Por favor complete todos los campos requeridos';
+      toast.error(errorMsg);
+      return { success: false, error: errorMsg };
     }
     
     try {
@@ -250,8 +262,9 @@ const ProgramacionHorariosPage: React.FC = () => {
       
       // Validar que las horas tengan el formato correcto
       if (formData.hora_inicio >= formData.hora_fin) {
-        toast.error('La hora de inicio debe ser menor que la hora de fin');
-        return;
+        const errorMsg = 'La hora de inicio debe ser menor que la hora de fin';
+        toast.error(errorMsg);
+        return { success: false, error: errorMsg };
       }
 
       // Crear el objeto de datos para la API
@@ -290,9 +303,13 @@ const ProgramacionHorariosPage: React.FC = () => {
         datosSimulados.aulas,
         datosSimulados.asignaturas || []
       );
+      
+      return { success: true };
     } catch (error) {
       console.error('Error al guardar el horario:', error);
-      toast.error(error instanceof Error ? error.message : 'Error al guardar el horario');
+      const errorMsg = error instanceof Error ? error.message : 'Error al guardar el horario';
+      toast.error(errorMsg);
+      return { success: false, error: errorMsg };
     } finally {
       setIsLoading(false);
     }
@@ -345,6 +362,24 @@ const ProgramacionHorariosPage: React.FC = () => {
     filtroDocente ||
     filtroAula
   );
+  
+  // Función para obtener el nombre del docente por ID
+  const getNombreDocente = (id: number) => {
+    const docente = opcionesSeguras.docentes.find(d => d.id === id);
+    return docente ? `${docente.nombres || ''} ${docente.apellidos || ''}`.trim() : '';
+  };
+  
+  // Función para obtener el nombre del grupo por ID
+  const getNombreGrupo = (id: number) => {
+    const grupo = opcionesSeguras.grupos.find(g => g.id === id);
+    return grupo ? grupo.nombre : '';
+  };
+  
+  // Función para obtener el nombre del aula por ID
+  const getNombreAula = (id: number) => {
+    const aula = opcionesSeguras.aulas.find(a => a.id === id);
+    return aula ? aula.nombre : '';
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -365,14 +400,32 @@ const ProgramacionHorariosPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filtros */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className="bg-white rounded-md shadow p-4">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Filtros</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
-              <div className="relative">
+      {/* Filtros Mejorados */}
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+              <h2 className="text-lg font-semibold text-gray-800">Filtros de Búsqueda</h2>
+              {hayFiltrosActivos && (
+                <button
+                  type="button"
+                  onClick={limpiarFiltros}
+                  className="mt-2 md:mt-0 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+                >
+                  <svg className="-ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Limpiar todos los filtros
+                </button>
+              )}
+            </div>
+          </div>
+          
+          <div className="p-6">
+            {/* Barra de búsqueda */}
+            <div className="mb-6">
+              <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">Búsqueda general</label>
+              <div className="relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
@@ -382,117 +435,227 @@ const ProgramacionHorariosPage: React.FC = () => {
                   type="text"
                   name="search"
                   id="search"
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 pr-12 sm:text-sm border-gray-300 rounded-md py-3 border"
                   placeholder="Buscar por día, turno, grupo, docente o aula..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  >
+                    <svg className="h-4 w-4 text-gray-400 hover:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
               </div>
             </div>
-            <div>
-              <label htmlFor="dia" className="block text-sm font-medium text-gray-700 mb-1">Día</label>
-              <select
-                id="dia"
-                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                value={filtroDia}
-                onChange={(e) => setFiltroDia(e.target.value)}
-              >
-                <option value="">Todos los días</option>
-                {opciones.dias.map((dia, index) => (
-                  <option key={`dia-${index}`} value={dia}>
-                    {dia}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="turno" className="block text-sm font-medium text-gray-700 mb-1">Turno</label>
-              <select
-                id="turno"
-                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                value={filtroTurno}
-                onChange={(e) => setFiltroTurno(e.target.value)}
-              >
-                <option value="">Todos los turnos</option>
-                {opciones.turnos.map((turno, index) => (
-                  <option key={`turno-${index}`} value={turno}>
-                    {turno}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="grupo" className="block text-sm font-medium text-gray-700 mb-1">Grupo</label>
-              <select
-                id="grupo"
-                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                value={filtroGrupo || ''}
-                onChange={(e) => setFiltroGrupo(e.target.value)}
-              >
-                <option value="">Todos los grupos</option>
-                {opcionesSeguras.grupos.map((grupo) => (
-                  <option key={`grupo-${grupo.id}`} value={grupo.id}>
-                    {grupo.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="docente" className="block text-sm font-medium text-gray-700 mb-1">Docente</label>
-              <select
-                id="docente"
-                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                value={filtroDocente || ''}
-                onChange={(e) => setFiltroDocente(e.target.value)}
-              >
-                <option value="">Todos los docentes</option>
-                {opcionesSeguras.docentes.map((docente) => {
-                  const nombreCompleto = `${docente.nombres || ''} ${docente.apellidos || ''}`.trim();
-                  return (
-                    <option key={docente.id} value={docente.id}>
-                      {nombreCompleto || `Docente ${docente.id}`}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="aula" className="block text-sm font-medium text-gray-700 mb-1">Aula</label>
-              <select
-                id="aula"
-                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                value={filtroAula || ''}
-                onChange={(e) => setFiltroAula(e.target.value)}
-              >
-                <option value="">Todas las aulas</option>
-                {opcionesSeguras.aulas.map((aula) => (
-                  <option key={aula.id} value={aula.id}>
-                    {aula.nombre}
-                  </option>
-                ))}
-              </select>
+            
+            {/* Filtros en grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Filtro por Día */}
+              <div className="space-y-1">
+                <label htmlFor="dia" className="block text-sm font-medium text-gray-700">Día de la semana</label>
+                <div className="relative">
+                  <select
+                    id="dia"
+                    className="block w-full pl-3 pr-10 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md border shadow-sm"
+                    value={filtroDia}
+                    onChange={(e) => setFiltroDia(e.target.value)}
+                  >
+                    <option value="">Todos los días</option>
+                    {opciones.dias.map((dia, index) => (
+                      <option key={`dia-${index}`} value={dia}>
+                        {dia}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              {/* Filtro por Turno */}
+              <div className="space-y-1">
+                <label htmlFor="turno" className="block text-sm font-medium text-gray-700">Turno</label>
+                <div className="relative">
+                  <select
+                    id="turno"
+                    className="block w-full pl-3 pr-10 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md border shadow-sm"
+                    value={filtroTurno}
+                    onChange={(e) => setFiltroTurno(e.target.value)}
+                  >
+                    <option value="">Todos los turnos</option>
+                    {opciones.turnos.map((turno, index) => (
+                      <option key={`turno-${index}`} value={turno}>
+                        {turno}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              {/* Filtro por Grupo */}
+              <div className="space-y-1">
+                <label htmlFor="grupo" className="block text-sm font-medium text-gray-700">Grupo</label>
+                <div className="relative">
+                  <select
+                    id="grupo"
+                    className="block w-full pl-3 pr-10 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md border shadow-sm"
+                    value={filtroGrupo || ''}
+                    onChange={(e) => setFiltroGrupo(e.target.value)}
+                  >
+                    <option value="">Todos los grupos</option>
+                    {opcionesSeguras.grupos.map((grupo) => (
+                      <option key={`grupo-${grupo.id}`} value={grupo.id}>
+                        {grupo.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              {/* Filtro por Docente */}
+              <div className="space-y-1">
+                <label htmlFor="docente" className="block text-sm font-medium text-gray-700">Docente</label>
+                <div className="relative">
+                  <select
+                    id="docente"
+                    className="block w-full pl-3 pr-10 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md border shadow-sm"
+                    value={filtroDocente || ''}
+                    onChange={(e) => setFiltroDocente(e.target.value)}
+                  >
+                    <option value="">Todos los docentes</option>
+                    {opcionesSeguras.docentes.map((docente) => {
+                      const nombreCompleto = `${docente.nombres || ''} ${docente.apellidos || ''}`.trim();
+                      return (
+                        <option key={docente.id} value={docente.id}>
+                          {nombreCompleto || `Docente ${docente.id}`}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              </div>
+              
+              {/* Filtro por Aula */}
+              <div className="space-y-1">
+                <label htmlFor="aula" className="block text-sm font-medium text-gray-700">Aula</label>
+                <div className="relative">
+                  <select
+                    id="aula"
+                    className="block w-full pl-3 pr-10 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md border shadow-sm"
+                    value={filtroAula || ''}
+                    onChange={(e) => setFiltroAula(e.target.value)}
+                  >
+                    <option value="">Todas las aulas</option>
+                    {opcionesSeguras.aulas.map((aula) => (
+                      <option key={aula.id} value={aula.id}>
+                        {aula.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              {/* Mostrar filtros activos */}
+              {hayFiltrosActivos && (
+                <div className="md:col-span-3">
+                  <div className="flex flex-wrap gap-2">
+                    {filtroDia && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Día: {filtroDia}
+                        <button
+                          type="button"
+                          className="ml-1.5 flex-shrink-0 h-4 w-4 rounded-full inline-flex items-center justify-center text-blue-400 hover:bg-blue-200 hover:text-blue-500 focus:outline-none focus:bg-blue-500 focus:text-white"
+                          onClick={() => setFiltroDia('')}
+                        >
+                          <span className="sr-only">Eliminar filtro de día</span>
+                          <svg className="h-2 w-2" stroke="currentColor" fill="none" viewBox="0 0 8 8">
+                            <path strokeLinecap="round" strokeWidth="1.5" d="M1 1l6 6m0-6L1 7" />
+                          </svg>
+                        </button>
+                      </span>
+                    )}
+                    
+                    {filtroTurno && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Turno: {filtroTurno}
+                        <button
+                          type="button"
+                          className="ml-1.5 flex-shrink-0 h-4 w-4 rounded-full inline-flex items-center justify-center text-green-400 hover:bg-green-200 hover:text-green-500 focus:outline-none focus:bg-green-500 focus:text-white"
+                          onClick={() => setFiltroTurno('')}
+                        >
+                          <span className="sr-only">Eliminar filtro de turno</span>
+                          <svg className="h-2 w-2" stroke="currentColor" fill="none" viewBox="0 0 8 8">
+                            <path strokeLinecap="round" strokeWidth="1.5" d="M1 1l6 6m0-6L1 7" />
+                          </svg>
+                        </button>
+                      </span>
+                    )}
+                    
+                    {filtroGrupo && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        Grupo: {getNombreGrupo(Number(filtroGrupo)) || filtroGrupo}
+                        <button
+                          type="button"
+                          className="ml-1.5 flex-shrink-0 h-4 w-4 rounded-full inline-flex items-center justify-center text-purple-400 hover:bg-purple-200 hover:text-purple-500 focus:outline-none focus:bg-purple-500 focus:text-white"
+                          onClick={() => setFiltroGrupo('')}
+                        >
+                          <span className="sr-only">Eliminar filtro de grupo</span>
+                          <svg className="h-2 w-2" stroke="currentColor" fill="none" viewBox="0 0 8 8">
+                            <path strokeLinecap="round" strokeWidth="1.5" d="M1 1l6 6m0-6L1 7" />
+                          </svg>
+                        </button>
+                      </span>
+                    )}
+                    
+                    {filtroDocente && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        Docente: {getNombreDocente(Number(filtroDocente)) || filtroDocente}
+                        <button
+                          type="button"
+                          className="ml-1.5 flex-shrink-0 h-4 w-4 rounded-full inline-flex items-center justify-center text-yellow-400 hover:bg-yellow-200 hover:text-yellow-500 focus:outline-none focus:bg-yellow-500 focus:text-white"
+                          onClick={() => setFiltroDocente('')}
+                        >
+                          <span className="sr-only">Eliminar filtro de docente</span>
+                          <svg className="h-2 w-2" stroke="currentColor" fill="none" viewBox="0 0 8 8">
+                            <path strokeLinecap="round" strokeWidth="1.5" d="M1 1l6 6m0-6L1 7" />
+                          </svg>
+                        </button>
+                      </span>
+                    )}
+                    
+                    {filtroAula && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
+                        Aula: {getNombreAula(Number(filtroAula)) || filtroAula}
+                        <button
+                          type="button"
+                          className="ml-1.5 flex-shrink-0 h-4 w-4 rounded-full inline-flex items-center justify-center text-pink-400 hover:bg-pink-200 hover:text-pink-500 focus:outline-none focus:bg-pink-500 focus:text-white"
+                          onClick={() => setFiltroAula('')}
+                        >
+                          <span className="sr-only">Eliminar filtro de aula</span>
+                          <svg className="h-2 w-2" stroke="currentColor" fill="none" viewBox="0 0 8 8">
+                            <path strokeLinecap="round" strokeWidth="1.5" d="M1 1l6 6m0-6L1 7" />
+                          </svg>
+                        </button>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-          {hayFiltrosActivos && (
-            <div className="mt-3 flex justify-end">
-              <button
-                type="button"
-                onClick={limpiarFiltros}
-                className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                <svg className="-ml-0.5 mr-1.5 h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Limpiar filtros
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
       {/* Modal para agregar/editar horario */}
       {isAddModalOpen && currentHorario && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-200 bg-black/50"
+          onClick={() => !isLoading && setIsAddModalOpen(false)}
+        >
           <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
@@ -525,8 +688,8 @@ const ProgramacionHorariosPage: React.FC = () => {
       )}
 
       {/* Tabla de horarios */}
-      <div className="max-w-6xl mx-auto px-2 sm:px-4 py-1">
-        <div className="bg-white shadow overflow-hidden rounded-md text-sm">
+      <div className="w-full px-2 sm:px-4 py-1">
+        <div className="bg-white shadow overflow-hidden rounded-md text-sm w-full">
           <ProgramacionHorarioTable 
             data={horarios}
             onEdit={handleEdit}

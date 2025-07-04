@@ -10,11 +10,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fullcalendar/core": "^6.1.18",
+    "@fullcalendar/daygrid": "^6.1.18",
+    "@fullcalendar/interaction": "^6.1.18",
+    "@fullcalendar/list": "^6.1.18",
+    "@fullcalendar/react": "^6.1.18",
+    "@fullcalendar/timegrid": "^6.1.18",
     "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.2.0",
     "@tailwindcss/vite": "^4.1.7",
     "@types/date-fns": "^2.5.3",
     "date-fns": "^4.1.0",
+    "framer-motion": "^12.23.0",
     "history": "^5.3.0",
     "ogl": "^1.0.11",
     "react": "^19.1.0",

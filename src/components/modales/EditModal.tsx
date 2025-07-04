@@ -1,193 +1,92 @@
-import React, { useState, useEffect } from 'react';
-import { FiX, FiCalendar, FiClock, FiBook } from 'react-icons/fi';
-
-interface ScheduleData {
-  id: string;
-  day: string;
-  startTime: string;
-  endTime: string;
-  subject: string;
-}
+import { useState, useEffect, type ReactNode } from 'react';
+import { FiX } from 'react-icons/fi';
 
 interface EditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { day: string; startTime: string; endTime: string; subject: string }) => void;
-  schedule: ScheduleData;
+  title: string;
+  children: ReactNode;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  isLoading?: boolean;
 }
 
-export function EditModal({ isOpen, onClose, onSave, schedule }: EditModalProps) {
-  const [formData, setFormData] = useState<Omit<ScheduleData, 'id'>>({
-    day: schedule.day,
-    startTime: schedule.startTime,
-    endTime: schedule.endTime,
-    subject: schedule.subject,
-  });
+const sizeClasses = {
+  sm: 'max-w-[32rem]',
+  md: 'max-w-[48rem]',
+  lg: 'max-w-[64rem]',
+  xl: 'max-w-[80rem]',
+};
+
+export function EditModal({
+  isOpen,
+  onClose,
+  title,
+  children,
+  size = 'md',
+  isLoading = false,
+}: EditModalProps) {
+  const [isVisible, setIsVisible] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setFormData({
-      day: schedule.day,
-      startTime: schedule.startTime,
-      endTime: schedule.endTime,
-      subject: schedule.subject,
-    });
-  }, [schedule]);
+    if (isOpen) {
+      setIsMounted(true);
+      const timer = setTimeout(() => setIsVisible(true), 10);
+      return () => clearTimeout(timer);
+    } else {
+      setIsVisible(false);
+      const timer = setTimeout(() => setIsMounted(false), 200);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget && !isLoading) {
+      onClose();
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(formData);
-  };
-
-  if (!isOpen) return null;
-
-  const daysOfWeek = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-  const subjects = ['Matemáticas', 'Ciencias', 'Historia', 'Literatura', 'Inglés'];
+  if (!isMounted) return null;
 
   return (
     <div 
-      className="fixed inset-0 flex items-center justify-center p-4 z-50 transition-opacity duration-300"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-      onClick={onClose}
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-200 ${isVisible ? 'bg-black/50' : 'bg-transparent pointer-events-none'}`}
+      onClick={handleBackdropClick}
     >
       <div 
-        className="bg-white rounded-xl shadow-2xl w-full max-w-lg transform transition-all duration-300 scale-100 opacity-100"
-        onClick={e => e.stopPropagation()}
+        className={`bg-white rounded-lg shadow-2xl transform transition-all duration-200 ease-in-out ${
+          isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
+        } w-[95vw] ${sizeClasses[size]} max-h-[90vh] flex flex-col overflow-hidden`}
       >
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">
-              {schedule.id ? 'Editar Horario' : 'Nuevo Horario'}
-            </h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-500 transition-colors"
-              aria-label="Cerrar"
-            >
-              <FiX size={24} />
-            </button>
-          </div>
-          
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-5">
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="day">
-                  Día de la semana
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FiCalendar className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <select
-                    id="day"
-                    name="day"
-                    value={formData.day}
-                    onChange={handleChange}
-                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700"
-                    required
-                  >
-                    {daysOfWeek.map(day => (
-                      <option key={day} value={day}>
-                        {day}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="relative">
-                  <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="startTime">
-                    Hora de inicio
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FiClock className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      type="time"
-                      id="startTime"
-                      name="startTime"
-                      value={formData.startTime}
-                      onChange={handleChange}
-                      className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div className="relative">
-                  <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="endTime">
-                    Hora de fin
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FiClock className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      type="time"
-                      id="endTime"
-                      name="endTime"
-                      value={formData.endTime}
-                      onChange={handleChange}
-                      className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="subject">
-                  Asignatura
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FiBook className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <select
-                    id="subject"
-                    name="subject"
-                    value={formData.subject}
-                    onChange={handleChange}
-                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700"
-                    required
-                  >
-                    <option value="">Selecciona una asignatura</option>
-                    {subjects.map(subject => (
-                      <option key={subject} value={subject}>
-                        {subject}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-            
-            <div className="mt-8 pt-5 border-t border-gray-200 flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors flex items-center"
-              >
-                {schedule.id ? 'Guardar cambios' : 'Crear horario'}
-              </button>
-            </div>
-          </form>
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">
+            {title}
+          </h3>
+          <button
+            type="button"
+            className="text-gray-400 hover:text-gray-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={onClose}
+            disabled={isLoading}
+          >
+            <span className="sr-only">Cerrar</span>
+            <FiX className="w-5 h-5" />
+          </button>
         </div>
+        
+        {/* Content */}
+        <div className="flex-1 overflow-hidden p-6">
+          <div className="h-full overflow-y-auto pr-2 -mr-2">
+            {children}
+          </div>
+        </div>
+        
+        {/* Loading overlay */}
+        {isLoading && (
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-lg">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        )}
       </div>
     </div>
   );

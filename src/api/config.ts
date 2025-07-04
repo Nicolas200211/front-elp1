@@ -165,15 +165,42 @@ export interface ProgramacionGeneral {
   estado?: 'Activo' | 'Inactivo' | 'Borrador' | 'Finalizado';
 }
 
+export interface AsignaturaUnidadAcademica {
+  id: number;
+  codigo: string;
+  nombre: string;
+  creditos: number;
+  horasTeoricas: number;
+  horasPracticas: number;
+  tipo: string;
+  estado: string;
+  idProgramacion: number;
+  idDocente: number;
+  idUnidadAcademica: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface UnidadAcademica {
-  id?: number;
+  id: number;
+  codigo: string;
   nombre: string;
   descripcion: string;
-  codigo?: string;
+  direccion?: string;
+  telefono?: string;
+  email?: string;
+  asignaturas: AsignaturaUnidadAcademica[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UnidadesAcademicasResponse {
+  data: UnidadAcademica[];
+  total: number;
 }
 
 export interface Grupo {
-  id?: number;
+  id: number;
   nombre: string;
   capacidad: number;
   idCiclo: number;
@@ -208,6 +235,7 @@ export interface Ciclo {
   id?: number;
   anio: number;
   periodo: 'I' | 'II' | 'Extra';
+  estado: 'Todos' | 'Activos' | 'Inactivos' | 'Finalizados';
   createdAt?: string;
   updatedAt?: string;
 }
@@ -268,16 +296,31 @@ export interface ProgramacionHorario {
 
 // ... (rest of the code remains the same)
 export interface Matricula {
-  id?: number;
+  id: number;
   idEstudiante: number;
   idGrupo: number;
+  estudiante?: {
+    id: number;
+    codigo: string;
+    nombres: string;
+    apellidos: string;
+    email?: string;
+    telefono?: string;
+    direccion?: string;
+    genero?: string;
+  };
+  grupo?: {
+    id: number;
+    idCiclo: number;
+    nombre: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+  // Campos opcionales que podrían estar en algunas respuestas
   fechaMatricula?: string;
-  estado: 'Activo' | 'Retirado' | 'Aprobado' | 'Reprobado' | 'Incompleto';
+  estado?: 'Activo' | 'Retirado' | 'Aprobado' | 'Reprobado' | 'Incompleto';
   calificacionFinal?: number;
   asistenciaPorcentaje?: number;
-  // Relaciones
-  estudiante?: Estudiante;
-  grupo?: Grupo;
 }
 
 export interface Aula {

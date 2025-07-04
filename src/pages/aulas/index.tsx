@@ -7,6 +7,7 @@ import type { Aula, UnidadAcademica } from '../../api/config';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Modal } from '../../components/ui/Modal';
+import { DeleteModal } from '../../components/modales/DeleteModal';
 
 const AulasPage: React.FC = () => {
   const [aulas, setAulas] = useState<Aula[]>([]);
@@ -14,6 +15,8 @@ const AulasPage: React.FC = () => {
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [currentAula, setCurrentAula] = useState<Partial<Aula> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
+  const [aulaToDelete, setAulaToDelete] = useState<{id: number, nombre: string} | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [unidadesAcademicas, setUnidadesAcademicas] = useState<UnidadAcademica[]>([]);
   const [isLoadingUnidades, setIsLoadingUnidades] = useState<boolean>(true);
@@ -95,17 +98,28 @@ const AulasPage: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  // Manejar la eliminación de un aula
-  const handleDelete = async (id: number) => {
-    if (window.confirm('¿Está seguro de que desea eliminar este aula?')) {
-      try {
-        await aulaService.delete(id);
-        toast.success('Aula eliminada correctamente');
-        loadAulas();
-      } catch (error) {
-        console.error('Error al eliminar el aula:', error);
-        toast.error('Error al eliminar el aula');
-      }
+  // Manejar la apertura del modal de eliminación
+  const handleDeleteClick = (id: number, nombre: string) => {
+    setAulaToDelete({ id, nombre });
+    setIsDeleteModalOpen(true);
+  };
+
+  // Manejar la confirmación de eliminación
+  const handleDeleteConfirm = async () => {
+    if (!aulaToDelete) return;
+    
+    try {
+      setIsSubmitting(true);
+      await aulaService.delete(aulaToDelete.id);
+      toast.success('Aula eliminada correctamente');
+      loadAulas();
+    } catch (error) {
+      console.error('Error al eliminar el aula:', error);
+      toast.error('Error al eliminar el aula');
+    } finally {
+      setIsDeleteModalOpen(false);
+      setAulaToDelete(null);
+      setIsSubmitting(false);
     }
   };
 
@@ -186,8 +200,21 @@ const AulasPage: React.FC = () => {
         <AulaTable 
           aulas={aulas} 
           onEdit={handleEdit} 
-          onDelete={handleDelete} 
-          isLoading={isLoading}
+          onDelete={handleDeleteClick} 
+          isLoading={isLoading} 
+        />
+
+        {/* Modal de confirmación de eliminación */}
+        <DeleteModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => !isSubmitting && setIsDeleteModalOpen(false)}
+          onConfirm={handleDeleteConfirm}
+          itemName={aulaToDelete ? `"${aulaToDelete.nombre}"` : 'esta aula'}
+          isLoading={isSubmitting}
+          title="Eliminar Aula"
+          description="¿Está seguro de que desea eliminar esta aula?"
+          confirmText="Eliminar"
+          cancelText="Cancelar"
         />
       </div>
 

@@ -4,7 +4,7 @@ import type { Grupo } from '../../api/config';
 interface GrupoTableProps {
   grupos: Grupo[];
   onEdit: (grupo: Grupo) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: number, nombre: string) => void;
   isLoading?: boolean;
   // Mantener compatibilidad con los props existentes aunque no los usemos
   showPrograma?: boolean;
@@ -72,11 +72,7 @@ export const GrupoTable: React.FC<GrupoTableProps> = ({
     );
   }
 
-  // Función para formatear el ID con ceros a la izquierda
-  const formatId = (id?: number) => {
-    if (!id) return 'N/A';
-    return id.toString().padStart(3, '0');
-  };
+
 
   return (
     <div className="overflow-x-auto">
@@ -86,16 +82,16 @@ export const GrupoTable: React.FC<GrupoTableProps> = ({
             <thead className="bg-gray-50">
               <tr>
                 <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  ID Grupo
+                  ID
                 </th>
                 <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                   Nombre
                 </th>
                 <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  ID Ciclo
+                  Ciclo
                 </th>
                 <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  ID Programación
+                  Año - Período
                 </th>
                 <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                   <span className="sr-only">Acciones</span>
@@ -105,17 +101,17 @@ export const GrupoTable: React.FC<GrupoTableProps> = ({
             <tbody className="divide-y divide-gray-200 bg-white">
               {grupos.map((grupo) => (
                 <tr key={grupo.id} className="hover:bg-gray-50">
-                  <td className="whitespace-nowrap px-3 py-4 text-sm font-mono text-gray-900">
-                    {formatId(grupo.id)}
+                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                    {grupo.id}
                   </td>
                   <td className="whitespace-nowrap px-3 py-4 text-sm font-medium text-gray-900">
                     {grupo.nombre}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm font-mono text-gray-500">
-                    {formatId(grupo.idCiclo)}
+                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                    {grupo.idCiclo}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm font-mono text-gray-500">
-                    {formatId(grupo.idPrograma)}
+                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                    {grupo.ciclo ? `${grupo.ciclo.anio} - ${grupo.ciclo.periodo}` : 'N/A'}
                   </td>
                   <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                     <button
@@ -125,7 +121,7 @@ export const GrupoTable: React.FC<GrupoTableProps> = ({
                       Editar
                     </button>
                     <button
-                      onClick={() => grupo.id && onDelete(grupo.id)}
+                      onClick={() => onDelete(grupo.id as number, grupo.nombre)}
                       className="text-red-600 hover:text-red-900"
                     >
                       Eliminar

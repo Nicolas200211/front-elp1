@@ -4,6 +4,8 @@ import type { Ciclo } from '../../api/config';
 import { toast } from 'react-toastify';
 import CicloTable from '../../components/ciclos/CicloTable';
 import CicloForm from '../../components/ciclos/CicloForm';
+import { EditModal } from '../../components/modales/EditModal';
+import { DeleteModal } from '../../components/modales/DeleteModal';
 
 const CiclosPage: React.FC = () => {
   const [ciclos, setCiclos] = useState<Ciclo[]>([]);
@@ -22,15 +24,9 @@ const CiclosPage: React.FC = () => {
       if (activeFilter === 'todos') {
         console.log('Obteniendo todos los ciclos...');
         data = await cicloService.getAll();
-      } else if (activeFilter === 'activos') {
-        console.log('Obteniendo ciclos activos...');
-        data = await cicloService.getByEstado('Activo');
-      } else if (activeFilter === 'inactivos') {
-        console.log('Obteniendo ciclos inactivos...');
-        data = await cicloService.getByEstado('Inactivo');
-      } else if (activeFilter === 'finalizados') {
-        console.log('Obteniendo ciclos finalizados...');
-        data = await cicloService.getByEstado('Finalizado');
+      } else {
+        console.log(`Obteniendo ciclos con estado: ${activeFilter}...`);
+        data = await cicloService.getByEstado(activeFilter);
       }
       
       console.log('Datos recibidos del servicio:', data);
@@ -70,17 +66,33 @@ const CiclosPage: React.FC = () => {
     setShowForm(true);
   };
 
+  // Estados para los modales
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [cicloToDelete, setCicloToDelete] = useState<Ciclo | null>(null);
+
   // Manejar la eliminación de un ciclo
-  const handleDeleteCiclo = async (id: number) => {
-    if (window.confirm('¿Está seguro de que desea eliminar este ciclo? Esta acción no se puede deshacer.')) {
-      try {
-        await cicloService.delete(id);
-        toast.success('Ciclo eliminado correctamente');
-        cargarCiclos();
-      } catch (error) {
-        console.error('Error al eliminar el ciclo:', error);
-        toast.error('No se pudo eliminar el ciclo');
-      }
+  const handleDeleteCiclo = (id: number) => {
+    const ciclo = ciclos.find(c => c.id === id);
+    if (ciclo) {
+      setCicloToDelete(ciclo);
+      setShowDeleteModal(true);
+    }
+  };
+
+  // Confirmar eliminación
+  const confirmDeleteCiclo = async () => {
+    if (!cicloToDelete?.id) return;
+    
+    try {
+      await cicloService.delete(cicloToDelete.id);
+      toast.success('Ciclo eliminado correctamente');
+      cargarCiclos();
+    } catch (error) {
+      console.error('Error al eliminar el ciclo:', error);
+      toast.error('No se pudo eliminar el ciclo');
+    } finally {
+      setShowDeleteModal(false);
+      setCicloToDelete(null);
     }
   };
 
@@ -117,62 +129,81 @@ const CiclosPage: React.FC = () => {
       </div>
 
       {/* Filtros */}
-      <div className="mt-6 flex space-x-4">
-        <button
-          type="button"
-          onClick={() => setActiveFilter('todos')}
-          className={`px-4 py-2 text-sm font-medium rounded-md ${activeFilter === 'todos' 
-            ? 'bg-indigo-100 text-indigo-700' 
-            : 'text-gray-700 hover:bg-gray-100'}`}
-        >
-          Todos
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveFilter('activos')}
-          className={`px-4 py-2 text-sm font-medium rounded-md ${activeFilter === 'activos' 
-            ? 'bg-green-100 text-green-700' 
-            : 'text-gray-700 hover:bg-gray-100'}`}
-        >
-          Activos
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveFilter('inactivos')}
-          className={`px-4 py-2 text-sm font-medium rounded-md ${activeFilter === 'inactivos' 
-            ? 'bg-gray-100 text-gray-700' 
-            : 'text-gray-700 hover:bg-gray-100'}`}
-        >
-          Inactivos
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveFilter('finalizados')}
-          className={`px-4 py-2 text-sm font-medium rounded-md ${activeFilter === 'finalizados' 
-            ? 'bg-blue-100 text-blue-700' 
-            : 'text-gray-700 hover:bg-gray-100'}`}
-        >
-          Finalizados
-        </button>
+      <div className="mt-6">
+        <h3 className="text-sm font-medium text-gray-500 mb-2">Filtrar por estado:</h3>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveFilter('todos')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              activeFilter === 'todos'
+                ? 'bg-indigo-600 text-white shadow-sm hover:bg-indigo-700'
+                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            Todos
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveFilter('Activos')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              activeFilter === 'Activos'
+                ? 'bg-green-600 text-white shadow-sm hover:bg-green-700'
+                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            Activos
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveFilter('Inactivos')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              activeFilter === 'Inactivos'
+                ? 'bg-yellow-600 text-white shadow-sm hover:bg-yellow-700'
+                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            Inactivos
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveFilter('Finalizados')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              activeFilter === 'Finalizados'
+                ? 'bg-blue-600 text-white shadow-sm hover:bg-blue-700'
+                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            Finalizados
+          </button>
+        </div>
       </div>
 
-      {/* Formulario de ciclo (modal) */}
-      {showForm && (
-        <div className="mt-8 bg-white shadow overflow-hidden sm:rounded-lg p-6">
-          <div className="border-b border-gray-200 pb-5">
-            <h2 className="text-lg font-medium text-gray-900">
-              {currentCiclo ? 'Editar Ciclo Académico' : 'Nuevo Ciclo Académico'}
-            </h2>
-          </div>
-          <div className="mt-6">
-            <CicloForm
-              initialData={currentCiclo || undefined}
-              onSuccess={handleFormSubmit}
-              onCancel={handleFormCancel}
-            />
-          </div>
-        </div>
-      )}
+      {/* Modal de edición */}
+      <EditModal
+        isOpen={showForm}
+        onClose={handleFormCancel}
+        title={currentCiclo ? 'Editar Ciclo Académico' : 'Nuevo Ciclo Académico'}
+        size="lg"
+      >
+        <CicloForm
+          initialData={currentCiclo || undefined}
+          onSuccess={handleFormSubmit}
+          onCancel={handleFormCancel}
+        />
+      </EditModal>
+
+      {/* Modal de confirmación de eliminación */}
+      <DeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDeleteCiclo}
+        itemName={cicloToDelete ? `Ciclo ${cicloToDelete.anio}-${cicloToDelete.periodo}` : ''}
+        title="Confirmar eliminación de ciclo"
+        description="¿Está seguro de que desea eliminar el siguiente ciclo académico?"
+        confirmText="Eliminar ciclo"
+        cancelText="Cancelar"
+      />
 
       {/* Tabla de ciclos */}
       <div className="mt-8">

@@ -6,6 +6,7 @@ import type { Grupo } from '../../api/config';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Modal } from '../../components/ui/Modal';
+import { DeleteModal } from '../../components/modales/DeleteModal';
 
 const GruposPage: React.FC = () => {
   const [grupos, setGrupos] = useState<Grupo[]>([]);
@@ -13,6 +14,8 @@ const GruposPage: React.FC = () => {
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [currentGrupo, setCurrentGrupo] = useState<Partial<Grupo> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
+  const [grupoToDelete, setGrupoToDelete] = useState<{id: number, nombre: string} | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filtroEstado, setFiltroEstado] = useState<string>('');
   const [filtroPrograma, setFiltroPrograma] = useState<string>('');
@@ -98,17 +101,26 @@ const GruposPage: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  // Manejar la eliminación de un grupo
-  const handleDelete = async (id: number) => {
-    if (window.confirm('¿Está seguro de que desea eliminar este grupo?')) {
-      try {
-        await grupoService.delete(id);
-        toast.success('Grupo eliminado correctamente');
-        loadGrupos();
-      } catch (error) {
-        console.error('Error al eliminar el grupo:', error);
-        toast.error('Error al eliminar el grupo');
-      }
+  // Manejar la apertura del modal de eliminación
+  const handleDeleteClick = (id: number, nombre: string) => {
+    setGrupoToDelete({ id, nombre });
+    setIsDeleteModalOpen(true);
+  };
+
+  // Manejar la confirmación de eliminación
+  const handleDeleteConfirm = async () => {
+    if (!grupoToDelete) return;
+    
+    try {
+      await grupoService.delete(grupoToDelete.id);
+      toast.success('Grupo eliminado correctamente');
+      loadGrupos();
+    } catch (error) {
+      console.error('Error al eliminar el grupo:', error);
+      toast.error('Error al eliminar el grupo');
+    } finally {
+      setIsDeleteModalOpen(false);
+      setGrupoToDelete(null);
     }
   };
 
@@ -282,7 +294,7 @@ const GruposPage: React.FC = () => {
         <GrupoTable 
           grupos={grupos} 
           onEdit={handleEdit} 
-          onDelete={handleDelete} 
+          onDelete={(id, nombre) => handleDeleteClick(id, nombre)} 
           isLoading={isLoading}
           showPrograma={!filtroPrograma}
           showCiclo={!filtroCiclo}
@@ -294,42 +306,6 @@ const GruposPage: React.FC = () => {
         isOpen={isFormOpen}
         onClose={() => !isSubmitting && setIsFormOpen(false)}
         title={currentGrupo?.id ? 'Editar Grupo' : 'Nuevo Grupo'}
-        footer={
-          <>
-            <button
-              type="button"
-              onClick={() => !isSubmitting && setIsFormOpen(false)}
-              disabled={isSubmitting}
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '0.375rem',
-                border: '1px solid #d1d5db',
-                backgroundColor: 'white',
-                color: '#374151',
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                opacity: isSubmitting ? 0.5 : 1
-              }}
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={() => currentGrupo && handleSubmit(currentGrupo)}
-              disabled={isSubmitting}
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '0.375rem',
-                backgroundColor: isSubmitting ? '#93c5fd' : '#2563eb',
-                color: 'white',
-                border: 'none',
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                opacity: isSubmitting ? 0.7 : 1
-              }}
-            >
-              {isSubmitting ? 'Guardando...' : 'Guardar'}
-            </button>
-          </>
-        }
       >
         {currentGrupo && (
           <GrupoForm
@@ -341,6 +317,19 @@ const GruposPage: React.FC = () => {
           />
         )}
       </Modal>
+
+      {/* Modal de confirmación de eliminación */}
+      <DeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        itemName={grupoToDelete ? `"${grupoToDelete.nombre}"` : 'este grupo'}
+        isLoading={isSubmitting}
+        title="Eliminar Grupo"
+        description="¿Está seguro de que desea eliminar este grupo?"
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+      />
     </div>
   );
 };

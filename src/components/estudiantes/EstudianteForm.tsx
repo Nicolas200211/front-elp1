@@ -1,10 +1,48 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { estudianteService } from '../../api/estudianteService';
-import type { Estudiante, Programa } from '../../api/config';
+import { FiUser, FiMail, FiPhone, FiMapPin, FiCalendar, FiBook } from 'react-icons/fi';
+
+// Definir tipos locales ya que no están en las importaciones
+export interface Programa {
+  id: number;
+  nombre: string;
+}
+
+export interface Estudiante {
+  id?: number;
+  codigo: string;
+  nombres: string;
+  apellidos: string;
+  email: string;
+  telefono: string;
+  direccion: string;
+  genero: string;
+  estado: string;
+  idPrograma: number;
+  programa?: Programa;
+  fechaNacimiento: string | Date;
+  dni: string; // Agregar la propiedad dni
+}
+
+export interface EstudianteFormData {
+  id?: number;
+  codigo: string;
+  nombres: string;
+  apellidos: string;
+  email: string;
+  telefono: string;
+  dni: string;
+  direccion: string;
+  fechaNacimiento: string | Date;
+  genero: 'M' | 'F' | 'O';
+  idPrograma: number;
+  programa?: number; // ID del programa
+  estado?: string;
+}
 
 interface EstudianteFormProps {
   initialData?: Partial<Estudiante>;
-  onSubmit: (data: Partial<Estudiante>) => void;
+  onSubmit: (data: EstudianteFormData) => void;
   isEditing?: boolean;
   onCancel: () => void;
   isSubmitting: boolean;
@@ -22,27 +60,45 @@ export const EstudianteForm: React.FC<EstudianteFormProps> = ({
   initialData = {},
   onSubmit,
   isEditing = false,
-  onCancel,
   isSubmitting,
 }) => {
-  const [formData, setFormData] = useState<Partial<Estudiante>>({
-    codigo: '',
-    nombres: '',
-    apellidos: '',
-    email: '',
-    telefono: '',
-    dni: '',
-    direccion: '',
-    fechaNacimiento: '',
-    genero: 'M',
-    estado: 'Activo',
-    idPrograma: 0,
-    ...initialData,
+  const [formData, setFormData] = useState<EstudianteFormData>(() => {
+    // Create initial form data with default values
+    const defaultData: EstudianteFormData = {
+      codigo: '',
+      nombres: '',
+      apellidos: '',
+      email: '',
+      telefono: '',
+      dni: '',
+      direccion: '',
+      fechaNacimiento: '',
+      genero: 'M',
+      idPrograma: 0,
+      programa: undefined,
+    };
+
+    // If we have initial data, merge it with defaults
+    if (initialData) {
+      return {
+        ...defaultData,
+        ...initialData,
+        // Ensure we only use the ID for the programa field
+        programa: initialData.programa?.id || initialData.idPrograma,
+        // Ensure genero is one of the allowed values
+        genero: (initialData.genero === 'M' || initialData.genero === 'F' || initialData.genero === 'O') 
+          ? initialData.genero 
+          : 'M',
+      };
+    }
+    
+    return defaultData;
   });
   
   const [programas, setProgramas] = useState<Programa[]>([]);
   const [isLoading, setIsLoading] = useState({
-    programas: true,
+    programas: false,
+    estudiante: false,
     codigoVerificando: false,
     dniVerificando: false,
   });
@@ -52,29 +108,27 @@ export const EstudianteForm: React.FC<EstudianteFormProps> = ({
   useEffect(() => {
     const loadInitialData = async () => {
       try {
+        setIsLoading(prev => ({ ...prev, programas: true }));
         const programasData = await estudianteService.getProgramas();
         setProgramas(programasData);
         
         // Establecer el primer programa como valor por defecto si no hay un valor inicial
-        if (programasData.length > 0 && !formData.idPrograma) {
+        if (initialData) {
           setFormData(prev => ({
             ...prev,
-            idPrograma: programasData[0].id
-          }));
+            ...initialData,
+            idPrograma: initialData.idPrograma || (programasData[0]?.id || 0)
+          } as EstudianteFormData));
         }
       } catch (error) {
         console.error('Error al cargar datos iniciales:', error);
-        setErrores(prev => ({
-          ...prev,
-          general: 'Error al cargar los programas. Por favor, intente nuevamente.'
-        }));
       } finally {
         setIsLoading(prev => ({ ...prev, programas: false }));
       }
     };
 
     loadInitialData();
-  }, []);
+  }, [initialData]);
 
   // Validar formulario
   const validarFormulario = async (): Promise<boolean> => {
@@ -148,7 +202,7 @@ export const EstudianteForm: React.FC<EstudianteFormProps> = ({
           ...prev,
           codigo: 'Este código ya está en uso por otro estudiante'
         }));
-      } else if (errores.codigo === 'Este código ya está en uso por otro estudiante') {
+      } else {
         const { codigo: _, ...restErrores } = errores;
         setErrores(restErrores);
       }
@@ -158,6 +212,9 @@ export const EstudianteForm: React.FC<EstudianteFormProps> = ({
       setIsLoading(prev => ({ ...prev, codigoVerificando: false }));
     }
   };
+  
+  // Alias para mantener compatibilidad
+  const handleVerificarCodigo = verificarCodigo;
 
   // Verificar si un DNI ya existe
   const verificarDni = async (dni: string) => {
@@ -175,7 +232,7 @@ export const EstudianteForm: React.FC<EstudianteFormProps> = ({
           ...prev,
           dni: 'Este DNI ya está registrado por otro estudiante'
         }));
-      } else if (errores.dni === 'Este DNI ya está registrado por otro estudiante') {
+      } else {
         const { dni: _, ...restErrores } = errores;
         setErrores(restErrores);
       }
@@ -185,28 +242,35 @@ export const EstudianteForm: React.FC<EstudianteFormProps> = ({
       setIsLoading(prev => ({ ...prev, dniVerificando: false }));
     }
   };
+  
+  // Alias para mantener compatibilidad
+  const handleVerificarDni = verificarDni;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     
-    // Limpiar el error del campo cuando se modifica
-    if (errores[name]) {
-      const { [name]: _, ...restErrores } = errores;
-      setErrores(restErrores);
-    }
-    
     setFormData(prev => ({
       ...prev,
       [name]: value
-    }));
-    
-    // Verificar código y DNI en tiempo real
-    if (name === 'codigo' && value.length === 8) {
-      verificarCodigo(value);
+    } as EstudianteFormData));
+
+    // Limpiar errores del campo al modificar
+    if (errores[name]) {
+      setErrores(prev => {
+        const newErrores = { ...prev };
+        delete newErrores[name];
+        return newErrores;
+      });
     }
-    
-    if (name === 'dni' && value.length === 8) {
-      verificarDni(value);
+
+    // Verificar código cuando se escribe
+    if (name === 'codigo' && value) {
+      handleVerificarCodigo(value);
+    }
+
+    // Verificar DNI cuando se escribe
+    if (name === 'dni' && value) {
+      handleVerificarDni(value);
     }
   };
 
@@ -229,26 +293,6 @@ export const EstudianteForm: React.FC<EstudianteFormProps> = ({
     onSubmit(formData);
   };
 
-  // Calcular edad a partir de la fecha de nacimiento
-  const calcularEdad = (fechaNacimiento?: string) => {
-    if (!fechaNacimiento) return '';
-    
-    try {
-      const fechaNac = new Date(fechaNacimiento);
-      const hoy = new Date();
-      let edad = hoy.getFullYear() - fechaNac.getFullYear();
-      const mes = hoy.getMonth() - fechaNac.getMonth();
-      
-      if (mes < 0 || (mes === 0 && hoy.getDate() < fechaNac.getDate())) {
-        edad--;
-      }
-      
-      return `${edad} años`;
-    } catch (error) {
-      return '';
-    }
-  };
-
   if (isLoading.programas) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -262,10 +306,13 @@ export const EstudianteForm: React.FC<EstudianteFormProps> = ({
       <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
         {/* Código */}
         <div className="sm:col-span-2">
-          <label htmlFor="codigo" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="codigo" className="block text-sm font-medium text-gray-700 mb-1">
             Código <span className="text-red-500">*</span>
           </label>
-          <div className="mt-1 relative rounded-md shadow-sm">
+          <div className="relative rounded-md shadow-sm">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiUser className="h-5 w-5 text-gray-400" />
+            </div>
             <input
               type="text"
               name="codigo"
@@ -273,16 +320,18 @@ export const EstudianteForm: React.FC<EstudianteFormProps> = ({
               maxLength={8}
               value={formData.codigo || ''}
               onChange={handleChange}
-              className={`block w-full rounded-md shadow-sm sm:text-sm ${
-                errores.codigo ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-              }`}
+              className={`block w-full pl-10 pr-3 py-2 border ${
+                errores.codigo 
+                  ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
+                  : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+              } rounded-md shadow-sm sm:text-sm`}
               placeholder="Ej: 20250001"
               disabled={isSubmitting || isLoading.codigoVerificando || isEditing}
               onBlur={(e) => verificarCodigo(e.target.value)}
             />
             {isLoading.codigoVerificando && (
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
               </div>
             )}
           </div>
@@ -293,10 +342,13 @@ export const EstudianteForm: React.FC<EstudianteFormProps> = ({
 
         {/* DNI */}
         <div className="sm:col-span-2">
-          <label htmlFor="dni" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="dni" className="block text-sm font-medium text-gray-700 mb-1">
             DNI <span className="text-red-500">*</span>
           </label>
-          <div className="mt-1 relative rounded-md shadow-sm">
+          <div className="relative rounded-md shadow-sm">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiUser className="h-5 w-5 text-gray-400" />
+            </div>
             <input
               type="text"
               name="dni"
@@ -304,16 +356,18 @@ export const EstudianteForm: React.FC<EstudianteFormProps> = ({
               maxLength={8}
               value={formData.dni || ''}
               onChange={handleChange}
-              className={`block w-full rounded-md shadow-sm sm:text-sm ${
-                errores.dni ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-              }`}
+              className={`block w-full pl-10 pr-3 py-2 border ${
+                errores.dni 
+                  ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
+                  : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+              } rounded-md shadow-sm sm:text-sm`}
               placeholder="Ej: 87654321"
               disabled={isSubmitting || isLoading.dniVerificando}
               onBlur={(e) => verificarDni(e.target.value)}
             />
             {isLoading.dniVerificando && (
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
               </div>
             )}
           </div>
@@ -323,92 +377,100 @@ export const EstudianteForm: React.FC<EstudianteFormProps> = ({
         </div>
 
         {/* Fecha de Nacimiento */}
-        <div className="sm:col-span-2">
-          <label htmlFor="fechaNacimiento" className="block text-sm font-medium text-gray-700">
+        <div className="sm:col-span-3">
+          <label htmlFor="fechaNacimiento" className="block text-sm font-medium text-gray-700 mb-1">
             Fecha de Nacimiento <span className="text-red-500">*</span>
           </label>
-          <div className="mt-1">
+          <div className="relative rounded-md shadow-sm">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiCalendar className="h-5 w-5 text-gray-400" />
+            </div>
             <input
               type="date"
               name="fechaNacimiento"
               id="fechaNacimiento"
               value={formData.fechaNacimiento?.toString().split('T')[0] || ''}
               onChange={handleChange}
-              className={`block w-full rounded-md shadow-sm sm:text-sm ${
-                errores.fechaNacimiento ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-              }`}
-              disabled={isSubmitting}
+              className={`block w-full pl-10 pr-3 py-2 border ${errores.fechaNacimiento ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'} rounded-md shadow-sm sm:text-sm`}
               max={new Date().toISOString().split('T')[0]}
+              disabled={isSubmitting}
             />
-            {formData.fechaNacimiento && (
-              <p className="mt-1 text-xs text-gray-500">
-                Edad: {calcularEdad(formData.fechaNacimiento.toString())}
-              </p>
-            )}
-            {errores.fechaNacimiento && (
-              <p className="mt-1 text-sm text-red-600">{errores.fechaNacimiento}</p>
-            )}
           </div>
+          {formData.fechaNacimiento && (
+            <p className="mt-1 text-xs text-gray-500">
+              Edad: {new Date().getFullYear() - new Date(formData.fechaNacimiento).getFullYear()} años
+            </p>
+          )}
+          {errores.fechaNacimiento && (
+            <p className="mt-1 text-sm text-red-600">{errores.fechaNacimiento}</p>
+          )}
         </div>
 
         {/* Nombres */}
         <div className="sm:col-span-3">
-          <label htmlFor="nombres" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="nombres" className="block text-sm font-medium text-gray-700 mb-1">
             Nombres <span className="text-red-500">*</span>
           </label>
-          <div className="mt-1">
+          <div className="relative rounded-md shadow-sm">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiUser className="h-5 w-5 text-gray-400" />
+            </div>
             <input
               type="text"
               name="nombres"
               id="nombres"
               value={formData.nombres || ''}
               onChange={handleChange}
-              className={`block w-full rounded-md shadow-sm sm:text-sm ${
-                errores.nombres ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-              }`}
+              className={`block w-full pl-10 pr-3 py-2 border ${errores.nombres ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'} rounded-md shadow-sm sm:text-sm`}
               disabled={isSubmitting}
             />
-            {errores.nombres && (
-              <p className="mt-1 text-sm text-red-600">{errores.nombres}</p>
-            )}
           </div>
+          {errores.nombres && (
+            <p className="mt-1 text-sm text-red-600">{errores.nombres}</p>
+          )}
         </div>
 
         {/* Apellidos */}
         <div className="sm:col-span-3">
-          <label htmlFor="apellidos" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="apellidos" className="block text-sm font-medium text-gray-700 mb-1">
             Apellidos <span className="text-red-500">*</span>
           </label>
-          <div className="mt-1">
+          <div className="relative rounded-md shadow-sm">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiUser className="h-5 w-5 text-gray-400" />
+            </div>
             <input
               type="text"
               name="apellidos"
               id="apellidos"
               value={formData.apellidos || ''}
               onChange={handleChange}
-              className={`block w-full rounded-md shadow-sm sm:text-sm ${
+              className={`block w-full pl-10 pr-3 py-2 border ${
                 errores.apellidos ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-              }`}
+              } rounded-md shadow-sm sm:text-sm`}
               disabled={isSubmitting}
             />
-            {errores.apellidos && (
-              <p className="mt-1 text-sm text-red-600">{errores.apellidos}</p>
-            )}
           </div>
+          {errores.apellidos && (
+            <p className="mt-1 text-sm text-red-600">{errores.apellidos}</p>
+          )}
         </div>
 
         {/* Género */}
-        <div className="sm:col-span-2">
-          <label htmlFor="genero" className="block text-sm font-medium text-gray-700">
+        <div className="sm:col-span-3">
+          <label htmlFor="genero" className="block text-sm font-medium text-gray-700 mb-1">
             Género <span className="text-red-500">*</span>
           </label>
-          <div className="mt-1">
+          <div className="relative rounded-md shadow-sm">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiUser className="h-5 w-5 text-gray-400" />
+            </div>
             <select
               id="genero"
               name="genero"
               value={formData.genero || 'M'}
               onChange={handleChange}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
               disabled={isSubmitting}
             >
               {GENEROS.map((genero) => (
@@ -421,17 +483,22 @@ export const EstudianteForm: React.FC<EstudianteFormProps> = ({
         </div>
 
         {/* Estado */}
-        <div className="sm:col-span-2">
-          <label htmlFor="estado" className="block text-sm font-medium text-gray-700">
+        <div className="sm:col-span-3">
+          <label htmlFor="estado" className="block text-sm font-medium text-gray-700 mb-1">
             Estado <span className="text-red-500">*</span>
           </label>
-          <div className="mt-1">
+          <div className="relative rounded-md shadow-sm">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+              </svg>
+            </div>
             <select
               id="estado"
               name="estado"
               value={formData.estado || 'Activo'}
               onChange={handleChange}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
               disabled={isSubmitting}
             >
               {ESTADOS.map((estado) => (
@@ -444,109 +511,121 @@ export const EstudianteForm: React.FC<EstudianteFormProps> = ({
         </div>
 
         {/* Programa */}
-        <div className="sm:col-span-2">
-          <label htmlFor="idPrograma" className="block text-sm font-medium text-gray-700">
+        <div className="sm:col-span-3">
+          <label htmlFor="idPrograma" className="block text-sm font-medium text-gray-700 mb-1">
             Programa <span className="text-red-500">*</span>
           </label>
-          <div className="mt-1">
+          <div className="relative rounded-md shadow-sm">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiBook className="h-5 w-5 text-gray-400" />
+            </div>
             <select
               id="idPrograma"
               name="idPrograma"
               value={formData.idPrograma || ''}
               onChange={handleChange}
-              className={`block w-full rounded-md shadow-sm sm:text-sm ${
+              className={`block w-full pl-10 pr-3 py-2 border ${
                 errores.idPrograma ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-              }`}
-              disabled={isSubmitting || programas.length === 0}
+              } rounded-md shadow-sm sm:text-sm`}
+              disabled={isSubmitting || isLoading.programas}
             >
-              {programas.length === 0 ? (
-                <option value="">No hay programas disponibles</option>
-              ) : (
-                <>
-                  <option value="">Seleccione un programa</option>
-                  {programas.map((programa) => (
-                    <option key={programa.id} value={programa.id}>
-                      {programa.nombre}
-                    </option>
-                  ))}
-                </>
-              )}
+              <option value="">Seleccione un programa</option>
+              {programas.map((programa) => (
+                <option key={programa.id} value={programa.id}>
+                  {programa.nombre}
+                </option>
+              ))}
             </select>
-            {errores.idPrograma && (
-              <p className="mt-1 text-sm text-red-600">{errores.idPrograma}</p>
+            {isLoading.programas && (
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              </div>
             )}
           </div>
+          {errores.idPrograma && (
+            <p className="mt-1 text-sm text-red-600">{errores.idPrograma}</p>
+          )}
         </div>
 
         {/* Email */}
         <div className="sm:col-span-3">
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
             Correo Electrónico <span className="text-red-500">*</span>
           </label>
-          <div className="mt-1">
+          <div className="relative rounded-md shadow-sm">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiMail className="h-5 w-5 text-gray-400" />
+            </div>
             <input
               type="email"
               name="email"
               id="email"
               value={formData.email || ''}
               onChange={handleChange}
-              className={`block w-full rounded-md shadow-sm sm:text-sm ${
+              className={`block w-full pl-10 pr-3 py-2 border ${
                 errores.email ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-              }`}
-              placeholder="ejemplo@dominio.com"
+              } rounded-md shadow-sm sm:text-sm`}
               disabled={isSubmitting}
+              placeholder="correo@ejemplo.com"
             />
-            {errores.email && (
-              <p className="mt-1 text-sm text-red-600">{errores.email}</p>
-            )}
           </div>
+          {errores.email && (
+            <p className="mt-1 text-sm text-red-600">{errores.email}</p>
+          )}
         </div>
 
         {/* Teléfono */}
         <div className="sm:col-span-3">
-          <label htmlFor="telefono" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="telefono" className="block text-sm font-medium text-gray-700 mb-1">
             Teléfono <span className="text-red-500">*</span>
           </label>
-          <div className="mt-1">
+          <div className="relative rounded-md shadow-sm">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiPhone className="h-5 w-5 text-gray-400" />
+            </div>
             <input
               type="tel"
               name="telefono"
               id="telefono"
               value={formData.telefono || ''}
               onChange={handleChange}
-              className={`block w-full rounded-md shadow-sm sm:text-sm ${
+              className={`block w-full pl-10 pr-3 py-2 border ${
                 errores.telefono ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-              }`}
-              placeholder="Ej: 987654321"
+              } rounded-md shadow-sm sm:text-sm`}
               disabled={isSubmitting}
+              placeholder="912345678"
             />
-            {errores.telefono && (
-              <p className="mt-1 text-sm text-red-600">{errores.telefono}</p>
-            )}
           </div>
+          {errores.telefono && (
+            <p className="mt-1 text-sm text-red-600">{errores.telefono}</p>
+          )}
         </div>
 
         {/* Dirección */}
         <div className="sm:col-span-6">
-          <label htmlFor="direccion" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="direccion" className="block text-sm font-medium text-gray-700 mb-1">
             Dirección <span className="text-red-500">*</span>
           </label>
-          <div className="mt-1">
+          <div className="relative rounded-md shadow-sm">
+            <div className="absolute top-0 left-0 pl-3 pt-2.5">
+              <FiMapPin className="h-5 w-5 text-gray-400" />
+            </div>
             <textarea
               id="direccion"
               name="direccion"
-              rows={2}
+              rows={3}
               value={formData.direccion || ''}
               onChange={handleChange}
-              className={`block w-full rounded-md shadow-sm sm:text-sm ${
+              className={`block w-full pl-10 pr-3 py-2 border ${
                 errores.direccion ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-              }`}
+              } rounded-md shadow-sm sm:text-sm`}
+              placeholder="Ingrese la dirección completa"
               disabled={isSubmitting}
             />
-            {errores.direccion && (
-              <p className="mt-1 text-sm text-red-600">{errores.direccion}</p>
-            )}
           </div>
+          {errores.direccion && (
+            <p className="mt-1 text-sm text-red-600">{errores.direccion}</p>
+          )}
         </div>
 
         {/* Mensaje de error general */}
@@ -558,38 +637,8 @@ export const EstudianteForm: React.FC<EstudianteFormProps> = ({
           </div>
         )}
       </div>
-
-      <div className="flex justify-end space-x-3 pt-4">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          disabled={isSubmitting}
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-          disabled={isSubmitting || Object.keys(errores).some(key => 
-            key !== 'general' && errores[key]?.includes('ya está')
-          )}
-        >
-          {isSubmitting ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Procesando...
-            </>
-          ) : isEditing ? (
-            'Actualizar Estudiante'
-          ) : (
-            'Registrar Estudiante'
-          )}
-        </button>
-      </div>
     </form>
   );
 };
+
+export default EstudianteForm;

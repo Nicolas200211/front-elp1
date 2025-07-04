@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { EstudianteForm } from '../../components/estudiantes/EstudianteForm';
-import { EstudianteTable } from '../../components/estudiantes/EstudianteTable';
+import type { EstudianteFormData } from '../../components/estudiantes/EstudianteForm';
 import { estudianteService } from '../../api/estudianteService';
 import type { Estudiante, Programa } from '../../api/config';
 import { toast } from 'react-toastify';
@@ -102,6 +102,12 @@ const EstudiantesPage: React.FC = () => {
     }
   }, [loadEstudiantes, isLoadingFiltros]);
 
+  // Manejar la edición de un estudiante existente
+  const handleEdit = (estudiante: Estudiante) => {
+    setCurrentEstudiante({ ...estudiante });
+    setIsFormOpen(true);
+  };
+
   // Manejar la creación de un nuevo estudiante
   const handleCreate = () => {
     setCurrentEstudiante({
@@ -120,25 +126,23 @@ const EstudiantesPage: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  // Manejar la edición de un estudiante existente
-  const handleEdit = (estudiante: Estudiante) => {
-    setCurrentEstudiante({ ...estudiante });
-    setIsFormOpen(true);
-  };
+
 
   // Manejar la eliminación de un estudiante
   const handleDelete = async (id: number) => {
-    if (window.confirm('¿Está seguro de que desea eliminar este estudiante? Esta acción no se puede deshacer.')) {
+    if (window.confirm('¿Está seguro de que desea eliminar este estudiante?')) {
       try {
         await estudianteService.delete(id);
         toast.success('Estudiante eliminado correctamente');
         loadEstudiantes();
       } catch (error) {
-        console.error('Error al eliminar el estudiante:', error);
+        console.error('Error al eliminar estudiante:', error);
         toast.error('Error al eliminar el estudiante');
       }
     }
   };
+
+
 
   // Manejar el envío del formulario (crear/actualizar)
   const handleSubmit = async (formData: Partial<Estudiante>) => {
@@ -185,13 +189,13 @@ const EstudiantesPage: React.FC = () => {
             Administra la información de los estudiantes
           </p>
         </div>
-        <div className="mt-4 sm:mt-0 sm:ml-4">
+        <div className="mt-5 sm:mt-0 sm:ml-6 sm:flex-shrink-0 sm:flex sm:items-center">
           <button
             type="button"
             onClick={handleCreate}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
               <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
             </svg>
             Nuevo Estudiante
@@ -287,35 +291,134 @@ const EstudiantesPage: React.FC = () => {
       </div>
 
       {/* Tabla de estudiantes */}
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <EstudianteTable 
-          estudiantes={estudiantes} 
-          onEdit={handleEdit} 
-          onDelete={handleDelete} 
-          isLoading={isLoading || isLoadingFiltros}
-        />
+      <div className="mt-8 flex flex-col">
+        <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
+          <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
+            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+              <table className="min-w-full divide-y divide-gray-300">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
+                      Código
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Nombres
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Apellidos
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Email
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Teléfono
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      DNI
+                    </th>
+                    <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                      <span className="sr-only">Acciones</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {estudiantes.length > 0 ? (
+                    estudiantes.map((estudiante) => (
+                      <tr key={estudiante.id} className="hover:bg-gray-50">
+                        <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                          {estudiante.codigo}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {estudiante.nombres}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {estudiante.apellidos}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {estudiante.email}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {estudiante.telefono}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {estudiante.dni}
+                        </td>
+                        <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                          <button
+                            onClick={() => handleEdit(estudiante)}
+                            className="text-blue-600 hover:text-blue-900 mr-4"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => handleDelete(estudiante.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Eliminar
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
+                        No se encontraron estudiantes
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
+
 
       {/* Modal de formulario */}
       <Modal
         isOpen={isFormOpen}
         onClose={() => !isSubmitting && setIsFormOpen(false)}
-        title={currentEstudiante?.id ? 'Editar Estudiante' : 'Nuevo Estudiante'}
-        footer={
-          <>
+        title={`${currentEstudiante?.id ? 'Editar' : 'Nuevo'} Estudiante`}
+      >
+        <div className="flex flex-col space-y-4">
+          {currentEstudiante && (
+            <EstudianteForm
+              initialData={currentEstudiante}
+              onSubmit={async (formData: EstudianteFormData) => {
+                if (currentEstudiante) {
+                  // Map form data to Estudiante type
+                  const estudianteData: Partial<Estudiante> = {
+                    ...currentEstudiante,
+                    ...formData,
+                    fechaNacimiento: formData.fechaNacimiento instanceof Date 
+                      ? formData.fechaNacimiento.toISOString() 
+                      : formData.fechaNacimiento,
+                    genero: formData.genero,
+                    idPrograma: formData.idPrograma,
+                    programa: undefined // Clear the programa object as we only need the ID
+                  };
+                  
+                  // Remove any undefined values
+                  (Object.keys(estudianteData) as Array<keyof Estudiante>).forEach((key) => {
+                    if (estudianteData[key] === undefined) {
+                      delete estudianteData[key];
+                    }
+                  });
+                  
+                  await handleSubmit(estudianteData);
+                }
+              }}
+              isEditing={!!currentEstudiante?.id}
+              onCancel={() => setIsFormOpen(false)}
+              isSubmitting={isSubmitting}
+            />
+          )}
+          <div className="flex justify-end space-x-3 mt-4">
             <button
               type="button"
               onClick={() => !isSubmitting && setIsFormOpen(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               disabled={isSubmitting}
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '0.375rem',
-                border: '1px solid #d1d5db',
-                backgroundColor: 'white',
-                color: '#374151',
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                opacity: isSubmitting ? 0.5 : 1
-              }}
             >
               Cancelar
             </button>
@@ -323,30 +426,12 @@ const EstudiantesPage: React.FC = () => {
               type="button"
               onClick={() => currentEstudiante && handleSubmit(currentEstudiante)}
               disabled={isSubmitting}
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '0.375rem',
-                backgroundColor: isSubmitting ? '#93c5fd' : '#2563eb',
-                color: 'white',
-                border: 'none',
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                opacity: isSubmitting ? 0.7 : 1
-              }}
+              className={`inline-flex justify-center px-4 py-2 ml-3 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
               {isSubmitting ? 'Guardando...' : 'Guardar'}
             </button>
-          </>
-        }
-      >
-        {currentEstudiante && (
-          <EstudianteForm
-            initialData={currentEstudiante}
-            onSubmit={handleSubmit}
-            isEditing={!!currentEstudiante.id}
-            onCancel={() => !isSubmitting && setIsFormOpen(false)}
-            isSubmitting={isSubmitting}
-          />
-        )}
+          </div>
+        </div>
       </Modal>
     </div>
   );

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { matriculaService } from '../../api/matriculaService';
 import type { Matricula, Estudiante, Grupo } from '../../api/config';
+import { FiUser, FiUsers, FiCheckCircle, FiX, FiAlertCircle, FiLoader, FiCalendar } from 'react-icons/fi';
+import 'react-toastify/dist/ReactToastify.css';
 
 interface MatriculaFormProps {
   initialData?: Partial<Matricula>;
@@ -27,6 +29,10 @@ export const MatriculaForm: React.FC<MatriculaFormProps> = ({
   });
   
   const [estudiantes, setEstudiantes] = useState<Estudiante[]>([]);
+  const [filteredEstudiantes, setFilteredEstudiantes] = useState<Estudiante[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [selectedEstudiante, setSelectedEstudiante] = useState<Estudiante | null>(null);
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   const [isLoading, setIsLoading] = useState({
     estudiantes: true,
@@ -45,12 +51,22 @@ export const MatriculaForm: React.FC<MatriculaFormProps> = ({
         ]);
         
         setEstudiantes(estudiantesData);
+        setFilteredEstudiantes(estudiantesData);
         setGrupos(gruposData);
+        
+        // Si hay datos iniciales, establecer el estudiante seleccionado
+        if (initialData.idEstudiante) {
+          const estudianteInicial = estudiantesData.find(e => e.id === initialData.idEstudiante);
+          if (estudianteInicial) {
+            setSelectedEstudiante(estudianteInicial);
+            setSearchTerm(`${estudianteInicial.nombres} ${estudianteInicial.apellidos} - ${estudianteInicial.codigo}`);
+          }
+        }
         
         // Establecer valores iniciales si no están definidos
         setFormData(prev => ({
           ...prev,
-          idEstudiante: prev.idEstudiante || estudiantesData[0]?.id || 0,
+          idEstudiante: prev.idEstudiante || 0,
           idGrupo: prev.idGrupo || gruposData[0]?.id || 0,
           estado: prev.estado || 'Activo',
         }));
@@ -63,7 +79,7 @@ export const MatriculaForm: React.FC<MatriculaFormProps> = ({
     };
 
     loadInitialData();
-  }, []);
+  }, [initialData]);
 
   // Validar matrícula cuando cambian los datos del formulario
   useEffect(() => {
@@ -98,13 +114,37 @@ export const MatriculaForm: React.FC<MatriculaFormProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     const { name, value } = e.target;
-    
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'calificacionFinal' || name === 'asistenciaPorcentaje' 
-        ? value === '' ? undefined : Number(value)
-        : value
+      [name]: value
     }));
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const searchValue = e.target.value;
+    setSearchTerm(searchValue);
+    
+    if (searchValue.length === 0) {
+      setFilteredEstudiantes(estudiantes);
+      setSelectedEstudiante(null);
+      setFormData(prev => ({ ...prev, idEstudiante: 0 }));
+      return;
+    }
+    
+    const filtered = estudiantes.filter(estudiante => 
+      `${estudiante.nombres} ${estudiante.apellidos} ${estudiante.codigo} ${estudiante.dni}`
+        .toLowerCase()
+        .includes(searchValue.toLowerCase())
+    );
+    setFilteredEstudiantes(filtered);
+    setIsDropdownOpen(true);
+  };
+  
+  const handleSelectEstudiante = (estudiante: Estudiante) => {
+    setSelectedEstudiante(estudiante);
+    setSearchTerm(`${estudiante.nombres} ${estudiante.apellidos} - ${estudiante.codigo}`);
+    setFormData(prev => ({ ...prev, idEstudiante: estudiante.id }));
+    setIsDropdownOpen(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -125,12 +165,6 @@ export const MatriculaForm: React.FC<MatriculaFormProps> = ({
     onSubmit(formData);
   };
 
-  // Obtener información del estudiante seleccionado
-  const estudianteSeleccionado = estudiantes.find(e => e.id === formData.idEstudiante);
-  
-  // Obtener información del grupo seleccionado
-  const grupoSeleccionado = grupos.find(g => g.id === formData.idGrupo);
-
   if (isLoading.estudiantes || isLoading.grupos) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -140,187 +174,195 @@ export const MatriculaForm: React.FC<MatriculaFormProps> = ({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-        {/* Estudiante */}
-        <div className="sm:col-span-6">
-          <label htmlFor="idEstudiante" className="block text-sm font-medium text-gray-700">
-            Estudiante <span className="text-red-500">*</span>
-          </label>
-          <div className="mt-1">
-            <select
-              id="idEstudiante"
-              name="idEstudiante"
-              value={formData.idEstudiante || ''}
-              onChange={handleChange}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              required
-              disabled={isSubmitting || isLoading.validando || isEditing}
-            >
-              <option value="">Seleccione un estudiante</option>
-              {estudiantes.map((estudiante) => (
-                <option key={estudiante.id} value={estudiante.id}>
-                  {estudiante.codigo} - {estudiante.nombres} {estudiante.apellidos}
-                </option>
-              ))}
-            </select>
-          </div>
-          {estudianteSeleccionado && (
-            <div className="mt-1 text-sm text-gray-500">
-              Programa: {estudianteSeleccionado.programa?.nombre || 'No especificado'}
+    <div className="bg-white rounded-lg shadow overflow-hidden">
+      <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          {/* Estudiante */}
+          <div className="space-y-1">
+            <label htmlFor="estudiante" className="block text-sm font-medium text-gray-700">
+              <FiUser className="inline mr-1 h-4 w-4 text-blue-500" />
+              Estudiante *
+            </label>
+            <div className="mt-1 relative">
+              <div className="relative">
+                <input
+                  type="text"
+                  id="estudiante-search"
+                  className={`block w-full pl-10 pr-3 py-2 text-base border ${
+                    formData.idEstudiante ? 'border-gray-300' : 'border-red-300'
+                  } rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+                  placeholder="Buscar estudiante..."
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  onFocus={() => setIsDropdownOpen(true)}
+                  disabled={isSubmitting || isLoading.estudiantes}
+                  required
+                />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FiUser className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="hidden"
+                  name="idEstudiante"
+                  value={formData.idEstudiante || ''}
+                />
+              </div>
+              
+              {isDropdownOpen && filteredEstudiantes.length > 0 && (
+                <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+                  {filteredEstudiantes.map((estudiante) => (
+                    <div
+                      key={estudiante.id}
+                      className={`cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-blue-50 ${
+                        selectedEstudiante?.id === estudiante.id ? 'bg-blue-50' : ''
+                      }`}
+                      onClick={() => handleSelectEstudiante(estudiante)}
+                    >
+                      <div className="flex items-center">
+                        <span className="font-normal ml-3 block truncate">
+                          {estudiante.nombres} {estudiante.apellidos} - {estudiante.codigo} (DNI: {estudiante.dni})
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {isDropdownOpen && filteredEstudiantes.length === 0 && searchTerm && (
+                <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 text-base">
+                  <div className="px-4 py-2 text-gray-500">No se encontraron estudiantes</div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-
-        {/* Grupo */}
-        <div className="sm:col-span-6">
-          <label htmlFor="idGrupo" className="block text-sm font-medium text-gray-700">
-            Grupo <span className="text-red-500">*</span>
-          </label>
-          <div className="mt-1">
-            <select
-              id="idGrupo"
-              name="idGrupo"
-              value={formData.idGrupo || ''}
-              onChange={handleChange}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              required
-              disabled={isSubmitting || isLoading.validando}
-            >
-              <option value="">Seleccione un grupo</option>
-              {grupos.map((grupo) => (
-                <option key={grupo.id} value={grupo.id}>
-                  {grupo.nombre} - {grupo.programa?.nombre} ({grupo.ciclo?.nombre})
-                </option>
-              ))}
-            </select>
           </div>
-          {grupoSeleccionado && (
-            <div className="mt-1 text-sm text-gray-500">
-              Capacidad: {grupoSeleccionado.capacidad} estudiantes | 
-              Programa: {grupoSeleccionado.programa?.nombre} | 
-              Ciclo: {grupoSeleccionado.ciclo?.nombre}
+
+          {/* Grupo */}
+          <div className="space-y-1">
+            <label htmlFor="grupo" className="block text-sm font-medium text-gray-700">
+              <FiUsers className="inline mr-1 h-4 w-4 text-blue-500" />
+              Grupo *
+            </label>
+            <div className="mt-1 relative rounded-md shadow-sm">
+              <select
+                id="grupo"
+                name="idGrupo"
+                className={`block w-full pl-10 pr-10 py-2 text-base border ${
+                  formData.idGrupo ? 'border-gray-300' : 'border-red-300'
+                } rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
+                value={formData.idGrupo || ''}
+                onChange={handleChange}
+                disabled={isSubmitting || isLoading.grupos}
+                required
+              >
+                <option value="">Seleccione un grupo</option>
+                {grupos.map((grupo) => (
+                  <option key={grupo.id} value={grupo.id}>
+                    {grupo.nombre} - {grupo.programa?.nombre} ({grupo.ciclo?.anio}-{grupo.ciclo?.periodo})
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FiUsers className="h-5 w-5 text-gray-400" />
+              </div>
             </div>
-          )}
-        </div>
-
-        {/* Estado */}
-        <div className="sm:col-span-3">
-          <label htmlFor="estado" className="block text-sm font-medium text-gray-700">
-            Estado <span className="text-red-500">*</span>
-          </label>
-          <div className="mt-1">
-            <select
-              id="estado"
-              name="estado"
-              value={formData.estado || 'Activo'}
-              onChange={handleChange}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              required
-              disabled={isSubmitting}
-            >
-              {ESTADOS.map((estado) => (
-                <option key={estado} value={estado}>
-                  {estado}
-                </option>
-              ))}
-            </select>
           </div>
-        </div>
 
-        {/* Calificación Final */}
-        <div className="sm:col-span-3">
-          <label htmlFor="calificacionFinal" className="block text-sm font-medium text-gray-700">
-            Calificación Final
-          </label>
-          <div className="mt-1">
-            <input
-              type="number"
-              name="calificacionFinal"
-              id="calificacionFinal"
-              min="0"
-              max="20"
-              step="0.1"
-              value={formData.calificacionFinal ?? ''}
-              onChange={handleChange}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              disabled={isSubmitting}
-              placeholder="Opcional"
-            />
+          {/* Estado */}
+          <div className="space-y-1">
+            <label htmlFor="estado" className="block text-sm font-medium text-gray-700">
+              <FiCheckCircle className="inline mr-1 h-4 w-4 text-blue-500" />
+              Estado *
+            </label>
+            <div className="mt-1 relative rounded-md shadow-sm">
+              <select
+                id="estado"
+                name="estado"
+                className="block w-full pl-10 pr-10 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                value={formData.estado || ''}
+                onChange={handleChange}
+                disabled={isSubmitting}
+                required
+              >
+                {ESTADOS.map((estado) => (
+                  <option key={estado} value={estado}>
+                    {estado}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FiCheckCircle className="h-5 w-5 text-gray-400" />
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Porcentaje de Asistencia */}
-        <div className="sm:col-span-3">
-          <label htmlFor="asistenciaPorcentaje" className="block text-sm font-medium text-gray-700">
-            Asistencia (%)
-          </label>
-          <div className="mt-1">
-            <input
-              type="number"
-              name="asistenciaPorcentaje"
-              id="asistenciaPorcentaje"
-              min="0"
-              max="100"
-              value={formData.asistenciaPorcentaje ?? ''}
-              onChange={handleChange}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              disabled={isSubmitting}
-              placeholder="Opcional"
-            />
+          {/* Fecha de Matrícula */}
+          <div className="space-y-1">
+            <label htmlFor="fechaMatricula" className="block text-sm font-medium text-gray-700">
+              <FiCalendar className="inline mr-1 h-4 w-4 text-blue-500" />
+              Fecha de Matrícula
+            </label>
+            <div className="mt-1 relative rounded-md shadow-sm">
+              <input
+                type="date"
+                name="fechaMatricula"
+                id="fechaMatricula"
+                value={formData.fechaMatricula || ''}
+                onChange={handleChange}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                disabled={isSubmitting}
+              />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FiCalendar className="h-5 w-5 text-gray-400" />
+              </div>
+            </div>
           </div>
+
+          {/* Fecha de Matrícula */}
         </div>
 
-        {/* Mensaje de validación */}
+        {/* Mensaje de error */}
         {isLoading.error && (
-          <div className="sm:col-span-6">
-            <div className="p-3 bg-red-50 text-red-700 rounded-md text-sm">
-              {isLoading.error}
+          <div className="rounded-md bg-red-50 p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <FiAlertCircle className="h-5 w-5 text-red-400" aria-hidden="true" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">{isLoading.error}</h3>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Cargando validación */}
-        {isLoading.validando && (
-          <div className="sm:col-span-6 flex items-center text-sm text-blue-600">
-            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Validando matrícula...
-          </div>
-        )}
-      </div>
-
-      <div className="flex justify-end space-x-3 pt-4">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          disabled={isSubmitting || isLoading.validando}
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-          disabled={!!(isSubmitting || isLoading.validando || (isLoading.error && !isEditing))}
-        >
-          {isSubmitting ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Procesando...
-            </>
-          ) : isEditing ? (
-            'Actualizar Matrícula'
-          ) : (
-            'Registrar Matrícula'
-          )}
-        </button>
-      </div>
-    </form>
+        {/* Acciones */}
+        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            disabled={isSubmitting}
+          >
+            <FiX className="-ml-1 mr-2 h-4 w-4" />
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            disabled={isSubmitting || isLoading.estudiantes || isLoading.grupos}
+          >
+            {isSubmitting ? (
+              <>
+                <FiLoader className="animate-spin -ml-1 mr-2 h-4 w-4" />
+                Guardando...
+              </>
+            ) : isEditing ? (
+              'Actualizar matrícula'
+            ) : (
+              'Registrar Matrícula'
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 };

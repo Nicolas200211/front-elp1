@@ -203,64 +203,66 @@ export const ProgramacionHorarioTable: React.FC<ProgramacionHorarioTableProps> =
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 relative">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gradient-to-r from-gray-50 to-gray-75">
-            <tr>
-              {columns.map((column) => (
-                <th key={column.Header} scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider rounded-tl-2xl">
-                  {column.Header}
-                </th>
-              ))}
-              <th scope="col" className="relative px-6 py-4 rounded-tr-2xl">
-                <span className="sr-only">Acciones</span>
+    <div className="w-full overflow-x-auto">
+      <table className="w-full divide-y divide-gray-200">
+        <thead className="bg-gradient-to-r from-gray-50 to-gray-75">
+          <tr>
+            {columns.map((column) => (
+              <th 
+                key={column.Header} 
+                scope="col" 
+                className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+              >
+                {column.Header}
               </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-100">
-            {data.map((horario) => (
-              <tr key={horario.id} className="group bg-white hover:bg-gray-50 transition-all duration-200 hover:shadow-sm">
-                {columns.map((column) => {
-                  const value = column.accessor in horario 
-                    ? horario[column.accessor as keyof ProgramacionHorario] 
-                    : '';
-                  return (
-                    <td key={column.Header} className="px-6 py-5 whitespace-nowrap">
-                      {column.Cell 
-                        ? column.Cell({ row: { original: horario }, value })
-                        : String(value)}
-                    </td>
-                  );
-                })}
-                <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
-                  <div className="flex items-center justify-end space-x-3">
-                    <button
-                      type="button"
-                      onClick={() => handleEditClick(horario)}
-                      className="text-blue-600 hover:text-blue-900 mr-3 focus:outline-none"
-                      title="Editar"
-                    >
-                      <FiEdit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteClick(horario)}
-                      className="text-red-600 hover:text-red-900 focus:outline-none"
-                      title="Eliminar"
-                    >
-                      <FiTrash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
             ))}
-          </tbody>
-        </table>
-      </div>
+            <th scope="col" className="relative px-6 py-4">
+              <span className="sr-only">Acciones</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-100">
+          {data.map((horario) => (
+            <tr key={horario.id} className="group bg-white hover:bg-gray-50 transition-all duration-200 hover:shadow-sm">
+              {columns.map((column) => {
+                const value = column.accessor in horario 
+                  ? horario[column.accessor as keyof ProgramacionHorario] 
+                  : '';
+                return (
+                  <td key={column.Header} className="px-6 py-5 whitespace-nowrap">
+                    {column.Cell 
+                      ? column.Cell({ row: { original: horario }, value })
+                      : String(value)}
+                  </td>
+                );
+              })}
+              <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
+                <div className="flex items-center justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => handleEditClick(horario)}
+                    className="text-blue-600 hover:text-blue-900 mr-3 focus:outline-none"
+                    title="Editar"
+                  >
+                    <FiEdit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteClick(horario)}
+                    className="text-red-600 hover:text-red-900 focus:outline-none"
+                    title="Eliminar"
+                  >
+                    <FiTrash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
       
       {/* Table Footer */}
-      <div className="bg-gray-50 px-6 py-3 flex items-center justify-between border-t border-gray-100 rounded-b-2xl">
+      <div className="bg-gray-50 px-6 py-3 flex items-center justify-between border-t border-gray-100">
         <div className="text-sm text-gray-500">
           Mostrando <span className="font-medium">{data.length}</span> de <span className="font-medium">{data.length}</span> horarios
         </div>
@@ -280,8 +282,14 @@ export const ProgramacionHorarioTable: React.FC<ProgramacionHorarioTableProps> =
       
       {/* Modal de edición */}
       {isEditModalOpen && editingHorario && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-200 bg-black/50"
+          onClick={() => !isLoading && setIsEditModalOpen(false)}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-xl w-full max-w-2xl"
+            onClick={e => e.stopPropagation()}
+          >
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-800">Editar Programación de Horario</h2>
@@ -315,9 +323,8 @@ export const ProgramacionHorarioTable: React.FC<ProgramacionHorarioTableProps> =
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
-        scheduleName={`${deletingHorario?.dia || ''} ${deletingHorario?.hora_inicio || ''} - ${deletingHorario?.hora_fin || ''}`}
+        itemName={`${deletingHorario?.dia || ''} ${deletingHorario?.hora_inicio || ''} - ${deletingHorario?.hora_fin || ''}`}
       />
-
     </div>
   );
 };

@@ -4,7 +4,7 @@ import type { Aula } from '../../api/config';
 interface AulaTableProps {
   aulas: Aula[];
   onEdit: (aula: Aula) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: number, nombre: string) => void;
   isLoading?: boolean;
 }
 
@@ -142,7 +142,7 @@ export const AulaTable: React.FC<AulaTableProps> = ({
                       Editar
                     </button>
                     <button
-                      onClick={() => aula.id && onDelete(aula.id)}
+                      onClick={() => onDelete(aula.id as number, aula.nombre || '')}
                       className="text-red-600 hover:text-red-900"
                     >
                       Eliminar

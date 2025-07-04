@@ -224,83 +224,65 @@ export const AsignaturaForm: React.FC<AsignaturaFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-6">
-        {/* Sección de información básica */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-medium text-gray-900 mb-6 pb-2 border-b border-gray-200">Información Básica</h3>
+    <form onSubmit={handleSubmit} className="space-y-6 w-full max-w-6xl mx-auto px-4">
+      {/* Sección de información básica */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden w-full">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+          <h3 className="text-lg font-semibold text-gray-800">Información Básica</h3>
+          <p className="mt-1 text-sm text-gray-500">Complete los datos principales de la asignatura</p>
+        </div>
+        <div className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Código</label>
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">Código <span className="text-red-500">*</span></label>
               <input
                 type="text"
                 name="codigo"
                 value={formData.codigo || ''}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 required
                 placeholder="Ej: MAT101"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">Nombre <span className="text-red-500">*</span></label>
               <input
                 type="text"
                 name="nombre"
                 value={formData.nombre || ''}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 required
                 placeholder="Nombre de la asignatura"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Créditos</label>
-              <input
-                type="number"
-                name="creditos"
-                value={formData.creditos || ''}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                required
-                min="0"
-                step="0.5"
-                placeholder="Ej: 4"
-              />
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">Créditos <span className="text-red-500">*</span></label>
+              <div className="relative rounded-md shadow-sm">
+                <input
+                  type="number"
+                  name="creditos"
+                  value={formData.creditos || ''}
+                  onChange={handleChange}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  required
+                  min="0"
+                  step="0.5"
+                  placeholder="0.0"
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <span className="text-gray-500 sm:text-sm">créditos</span>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Horas Teóricas</label>
-              <input
-                type="number"
-                name="horasTeoricas"
-                value={formData.horasTeoricas || ''}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                required
-                min="0"
-                placeholder="Horas semanales"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Horas Prácticas</label>
-              <input
-                type="number"
-                name="horasPracticas"
-                value={formData.horasPracticas || ''}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                required
-                min="0"
-                placeholder="Horas semanales"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">Tipo <span className="text-red-500">*</span></label>
               <select
                 name="tipo"
                 value={formData.tipo || ''}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 required
               >
                 <option value="">Seleccione un tipo</option>
@@ -308,13 +290,49 @@ export const AsignaturaForm: React.FC<AsignaturaFormProps> = ({
                 <option value="Electiva">Electiva</option>
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">Horas Teóricas <span className="text-red-500">*</span></label>
+              <div className="relative rounded-md shadow-sm">
+                <input
+                  type="number"
+                  name="horasTeoricas"
+                  value={formData.horasTeoricas || ''}
+                  onChange={handleChange}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  required
+                  min="0"
+                  placeholder="0"
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <span className="text-gray-500 sm:text-sm">horas</span>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">Horas Prácticas <span className="text-red-500">*</span></label>
+              <div className="relative rounded-md shadow-sm">
+                <input
+                  type="number"
+                  name="horasPracticas"
+                  value={formData.horasPracticas || ''}
+                  onChange={handleChange}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  required
+                  min="0"
+                  placeholder="0"
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <span className="text-gray-500 sm:text-sm">horas</span>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">Estado <span className="text-red-500">*</span></label>
               <select
                 name="estado"
                 value={formData.estado || ''}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 required
               >
                 <option value="">Seleccione un estado</option>
@@ -324,100 +342,134 @@ export const AsignaturaForm: React.FC<AsignaturaFormProps> = ({
             </div>
           </div>
         </div>
-        
-        {/* Sección de relaciones */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-medium text-gray-900 mb-6 pb-2 border-b border-gray-200">Relaciones</h3>
+      </div>
+      
+      {/* Sección de relaciones */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden w-full">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+          <h3 className="text-lg font-semibold text-gray-800">Relaciones</h3>
+          <p className="mt-1 text-sm text-gray-500">Asocie la asignatura con otros elementos del sistema</p>
+        </div>
+        <div className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Programación General</label>
-              <select
-                name="idProgramacionGeneral"
-                value={formData.idProgramacionGeneral ?? ''}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                required
-                disabled={isLoading.programaciones}
-              >
-                <option value="">Seleccione una programación</option>
-                {programaciones.map(programacion => (
-                  <option key={programacion.id} value={programacion.id}>
-                    {programacion.nombre || `Programación ${programacion.id}`}
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">Programación General <span className="text-red-500">*</span></label>
+              <div className="relative">
+                <select
+                  name="idProgramacionGeneral"
+                  value={formData.idProgramacionGeneral ?? ''}
+                  onChange={handleChange}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  required
+                  disabled={isLoading.programaciones}
+                >
+                  <option value="">Seleccione una programación</option>
+                  {programaciones.map(programacion => (
+                    <option key={programacion.id} value={programacion.id}>
+                      {programacion.nombre || `Programación ${programacion.id}`}
+                    </option>
+                  ))}
+                </select>
+                {isLoading.programaciones && (
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                  </div>
+                )}
+              </div>
               {isLoading.programaciones && (
-                <p className="mt-1 text-sm text-gray-500">Cargando programaciones...</p>
+                <p className="mt-1 text-xs text-gray-500">Cargando programaciones...</p>
               )}
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Docente</label>
-              <select
-                name="idDocente"
-                value={formData.idDocente || ''}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                required
-                disabled={isLoading.docentes}
-              >
-                <option value="">Seleccione un docente</option>
-                {docentes.map(docente => (
-                  <option key={docente.id} value={docente.id}>
-                    {docente.nombres} {docente.apellidos}
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">Docente <span className="text-red-500">*</span></label>
+              <div className="relative">
+                <select
+                  name="idDocente"
+                  value={formData.idDocente || ''}
+                  onChange={handleChange}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  required
+                  disabled={isLoading.docentes}
+                >
+                  <option value="">Seleccione un docente</option>
+                  {docentes.map(docente => (
+                    <option key={docente.id} value={docente.id}>
+                      {docente.nombres} {docente.apellidos}
+                    </option>
+                  ))}
+                </select>
+                {isLoading.docentes && (
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                  </div>
+                )}
+              </div>
               {isLoading.docentes && (
-                <p className="mt-1 text-sm text-gray-500">Cargando docentes...</p>
+                <p className="mt-1 text-xs text-gray-500">Cargando docentes...</p>
               )}
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Unidad Académica</label>
-              <select
-                name="idUnidadAcademica"
-                value={formData.idUnidadAcademica || ''}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                required
-                disabled={isLoading.unidades}
-              >
-                <option value="">Seleccione una unidad</option>
-                {unidadesAcademicas.map(unidad => (
-                  <option key={unidad.id} value={unidad.id}>
-                    {unidad.nombre}
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">Unidad Académica <span className="text-red-500">*</span></label>
+              <div className="relative">
+                <select
+                  name="idUnidadAcademica"
+                  value={formData.idUnidadAcademica || ''}
+                  onChange={handleChange}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  required
+                  disabled={isLoading.unidades}
+                >
+                  <option value="">Seleccione una unidad</option>
+                  {unidadesAcademicas.map(unidad => (
+                    <option key={unidad.id} value={unidad.id}>
+                      {unidad.nombre}
+                    </option>
+                  ))}
+                </select>
+                {isLoading.unidades && (
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                  </div>
+                )}
+              </div>
               {isLoading.unidades && (
-                <p className="mt-1 text-sm text-gray-500">Cargando unidades académicas...</p>
+                <p className="mt-1 text-xs text-gray-500">Cargando unidades académicas...</p>
               )}
             </div>
           </div>
         </div>
       </div>
-      <div className="flex justify-end space-x-3 pt-4">
+
+      {/* Acciones del formulario */}
+      <div className="flex justify-end space-x-3 pt-2">
         <button
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="ml-3 bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={isSubmitting}
-          className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
+          className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
             isSubmitting 
               ? 'bg-blue-400' 
               : 'bg-blue-600 hover:bg-blue-700'
-          } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
+          } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150`}
         >
-          {isSubmitting 
-            ? 'Guardando...' 
-            : isEditing ? 'Actualizar' : 'Crear'} Asignatura
+          {isSubmitting ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Guardando...
+            </>
+          ) : isEditing ? 'Actualizar Asignatura' : 'Crear Asignatura'}
         </button>
       </div>
     </form>

@@ -6,6 +6,7 @@ import type { Docente } from '../../api/config';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Modal } from '../../components/ui/Modal';
+import { DeleteModal } from '../../components/modales/DeleteModal';
 
 const DocentesPage: React.FC = () => {
   const [docentes, setDocentes] = useState<Docente[]>([]);
@@ -14,6 +15,7 @@ const DocentesPage: React.FC = () => {
   const [currentDocente, setCurrentDocente] = useState<Partial<Docente> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [docenteToDelete, setDocenteToDelete] = useState<Docente | null>(null);
 
   // Cargar docentes
   const loadDocentes = useCallback(async () => {
@@ -75,18 +77,33 @@ const DocentesPage: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  // Manejar la eliminación de un docente
-  const handleDelete = async (id: number) => {
-    if (window.confirm('¿Está seguro de que desea eliminar este docente?')) {
-      try {
-        await docenteService.delete(id);
-        toast.success('Docente eliminado correctamente');
-        loadDocentes();
-      } catch (error) {
-        console.error('Error al eliminar el docente:', error);
-        toast.error('Error al eliminar el docente');
-      }
+  // Manejar la solicitud de eliminación de un docente
+  const handleDeleteClick = (id: number) => {
+    const docente = docentes.find(d => d.id === id);
+    if (docente) {
+      setDocenteToDelete(docente);
     }
+  };
+
+  // Confirmar eliminación de docente
+  const handleDeleteConfirm = async () => {
+    if (!docenteToDelete?.id) return;
+    
+    try {
+      await docenteService.delete(docenteToDelete.id);
+      toast.success('Docente eliminado correctamente');
+      loadDocentes();
+    } catch (error) {
+      console.error('Error al eliminar el docente:', error);
+      toast.error('Error al eliminar el docente');
+    } finally {
+      setDocenteToDelete(null);
+    }
+  };
+
+  // Cancelar eliminación
+  const handleDeleteCancel = () => {
+    setDocenteToDelete(null);
   };
 
   // Función para verificar si el email ya existe
@@ -211,8 +228,8 @@ const DocentesPage: React.FC = () => {
       <div className="bg-white shadow overflow-hidden sm:rounded-lg">
         <DocenteTable 
           docentes={docentes} 
-          onEdit={handleEdit} 
-          onDelete={handleDelete} 
+          onEdit={handleEdit}
+          onDelete={handleDeleteClick}
           isLoading={isLoading}
         />
       </div>
@@ -232,6 +249,18 @@ const DocentesPage: React.FC = () => {
           isSubmitting={isSubmitting}
         />
       </Modal>
+
+      {/* Modal de confirmación de eliminación */}
+      <DeleteModal
+        isOpen={!!docenteToDelete}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Eliminar Docente"
+        itemName={`${docenteToDelete?.nombres} ${docenteToDelete?.apellidos}`}
+        description={`¿Está seguro de que desea eliminar a este docente? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+      />
     </div>
   );
 };

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { FiBook, FiHome, FiSave, FiX, FiInfo } from 'react-icons/fi';
 import type { ProgramacionGeneral, UnidadAcademica } from '../../api/config';
 import { unidadAcademicaService } from '../../api/unidadAcademicaService';
+import { toast } from 'react-toastify';
 
 interface ProgramacionGeneralFormProps {
   initialData?: Partial<ProgramacionGeneral>;
@@ -10,12 +12,12 @@ interface ProgramacionGeneralFormProps {
 }
 
 const NIVELES = [
-  'Inicial',
-  'Primaria',
-  'Secundaria',
-  'Superior',
-  'Profesional',
-  'Otro'
+  { value: 'Inicial', label: 'Nivel Inicial' },
+  { value: 'Primaria', label: 'Educación Primaria' },
+  { value: 'Secundaria', label: 'Educación Secundaria' },
+  { value: 'Superior', label: 'Educación Superior' },
+  { value: 'Profesional', label: 'Formación Profesional' },
+  { value: 'Otro', label: 'Otro Nivel' }
 ];
 
 const ProgramacionGeneralForm: React.FC<ProgramacionGeneralFormProps> = ({
@@ -32,6 +34,7 @@ const ProgramacionGeneralForm: React.FC<ProgramacionGeneralFormProps> = ({
 
   const [unidades, setUnidades] = useState<UnidadAcademica[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Cargar unidades académicas
   useEffect(() => {
@@ -40,7 +43,6 @@ const ProgramacionGeneralForm: React.FC<ProgramacionGeneralFormProps> = ({
         const data = await unidadAcademicaService.getAll();
         setUnidades(data);
         
-        // Si hay un idUnidad en initialData, establecerlo
         if (initialData?.idUnidad && !formData.idUnidad) {
           setFormData(prev => ({
             ...prev,
@@ -49,6 +51,7 @@ const ProgramacionGeneralForm: React.FC<ProgramacionGeneralFormProps> = ({
         }
       } catch (error) {
         console.error('Error al cargar unidades académicas:', error);
+        toast.error('Error al cargar las unidades académicas');
       } finally {
         setIsLoading(false);
       }
@@ -60,14 +63,24 @@ const ProgramacionGeneralForm: React.FC<ProgramacionGeneralFormProps> = ({
   // Actualizar formData cuando initialData cambie
   useEffect(() => {
     if (initialData) {
-      setFormData(prev => ({
-        ...prev,
+      setFormData({
         nombre: initialData.nombre || '',
         nivel: initialData.nivel || 'Profesional',
         idUnidad: initialData.idUnidad || 0,
-      }));
+      });
     }
   }, [initialData]);
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.nombre?.trim()) newErrors.nombre = 'El nombre es requerido';
+    if (!formData.idUnidad) newErrors.idUnidad = 'Seleccione una unidad académica';
+    if (!formData.nivel) newErrors.nivel = 'Seleccione un nivel';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -75,11 +88,30 @@ const ProgramacionGeneralForm: React.FC<ProgramacionGeneralFormProps> = ({
       ...prev,
       [name]: name === 'idUnidad' ? parseInt(value, 10) : value
     }));
+    
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSubmit(formData);
+    
+    if (!validateForm()) {
+      toast.error('Por favor complete todos los campos requeridos');
+      return;
+    }
+    
+    try {
+      await onSubmit(formData);
+    } catch (error) {
+      console.error('Error al guardar la programación:', error);
+      toast.error('Error al guardar la programación');
+    }
   };
 
   if (isLoading) {
@@ -91,58 +123,87 @@ const ProgramacionGeneralForm: React.FC<ProgramacionGeneralFormProps> = ({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="bg-white px-4 py-5 sm:p-6">
-        <div className="grid grid-cols-6 gap-6">
-          <div className="col-span-6 sm:col-span-3">
-            <label htmlFor="nombre" className="block text-sm font-medium text-gray-700">
-              Nombre de la Programación *
-            </label>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-6">
+        {/* Nombre */}
+        <div>
+          <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-1">
+            Nombre de la Programación <span className="text-red-500">*</span>
+          </label>
+          <div className="relative rounded-md shadow-sm">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiBook className="h-5 w-5 text-gray-400" />
+            </div>
             <input
               type="text"
               name="nombre"
               id="nombre"
               value={formData.nombre}
               onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              required
-              placeholder="Ej: Programación 2025-I"
+              className={`focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border ${
+                errors.nombre ? 'border-red-300' : 'border-gray-300'
+              } rounded-md py-2`}
+              placeholder="Ej: Programación Académica 2024"
             />
           </div>
+          {errors.nombre && (
+            <p className="mt-1 text-sm text-red-600 flex items-center">
+              <FiInfo className="mr-1" /> {errors.nombre}
+            </p>
+          )}
+        </div>
 
-          <div className="col-span-6 sm:col-span-3">
-            <label htmlFor="nivel" className="block text-sm font-medium text-gray-700">
-              Nivel *
-            </label>
+        {/* Nivel */}
+        <div>
+          <label htmlFor="nivel" className="block text-sm font-medium text-gray-700 mb-1">
+            Nivel Educativo <span className="text-red-500">*</span>
+          </label>
+          <div className="relative rounded-md shadow-sm">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiBook className="h-5 w-5 text-gray-400" />
+            </div>
             <select
               id="nivel"
               name="nivel"
               value={formData.nivel}
               onChange={handleChange}
-              className="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-              required
+              className={`block w-full pl-10 pr-10 py-2 text-base border ${
+                errors.nivel ? 'border-red-300' : 'border-gray-300'
+              } focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md`}
             >
               {NIVELES.map((nivel) => (
-                <option key={nivel} value={nivel}>
-                  {nivel}
+                <option key={nivel.value} value={nivel.value}>
+                  {nivel.label}
                 </option>
               ))}
             </select>
           </div>
+          {errors.nivel && (
+            <p className="mt-1 text-sm text-red-600 flex items-center">
+              <FiInfo className="mr-1" /> {errors.nivel}
+            </p>
+          )}
+        </div>
 
-          <div className="mb-4">
-            <label htmlFor="id_unidad" className="block text-sm font-medium text-gray-700">
-              Unidad Académica *
-            </label>
+        {/* Unidad Académica */}
+        <div>
+          <label htmlFor="idUnidad" className="block text-sm font-medium text-gray-700 mb-1">
+            Unidad Académica <span className="text-red-500">*</span>
+          </label>
+          <div className="relative rounded-md shadow-sm">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiHome className="h-5 w-5 text-gray-400" />
+            </div>
             <select
               id="idUnidad"
               name="idUnidad"
-              value={formData.idUnidad}
+              value={formData.idUnidad || ''}
               onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-              required
+              className={`block w-full pl-10 pr-10 py-2 text-base border ${
+                errors.idUnidad ? 'border-red-300' : 'border-gray-300'
+              } focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md`}
             >
-              <option value="">Seleccione una unidad</option>
+              <option value="">Seleccione una unidad académica</option>
               {unidades.map((unidad) => (
                 <option key={unidad.id} value={unidad.id}>
                   {unidad.nombre}
@@ -150,33 +211,43 @@ const ProgramacionGeneralForm: React.FC<ProgramacionGeneralFormProps> = ({
               ))}
             </select>
           </div>
+          {errors.idUnidad && (
+            <p className="mt-1 text-sm text-red-600 flex items-center">
+              <FiInfo className="mr-1" /> {errors.idUnidad}
+            </p>
+          )}
         </div>
       </div>
 
-      <div className="bg-gray-50 px-4 py-3 text-right sm:px-6">
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isSubmitting}
-          className="mr-3 inline-flex justify-center rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
-        >
-          {isSubmitting ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Procesando...
-            </>
-          ) : initialData?.id ? 'Actualizar' : 'Crear'}
-        </button>
+      {/* Acciones */}
+      <div className="pt-5 border-t border-gray-200">
+        <div className="flex justify-end space-x-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <FiX className="-ml-1 mr-2 h-4 w-4" />
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-75 disabled:cursor-not-allowed"
+          >
+            <FiSave className="-ml-1 mr-2 h-4 w-4" />
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Procesando...
+              </>
+            ) : initialData?.id ? 'Actualizar' : 'Crear'}
+          </button>
+        </div>
       </div>
     </form>
   );

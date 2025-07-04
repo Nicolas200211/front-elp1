@@ -1,13 +1,12 @@
 import React from 'react';
 import type { Matricula } from '../../api/config';
+import { format } from 'date-fns';
 
 interface MatriculaTableProps {
   matriculas: Matricula[];
   onEdit: (matricula: Matricula) => void;
-  onDelete: (id: number) => void;
+  onDelete: (id: number, matricula: Matricula) => void;
   isLoading?: boolean;
-  showEstudiante?: boolean;
-  showGrupo?: boolean;
   showActions?: boolean;
 }
 
@@ -16,8 +15,6 @@ export const MatriculaTable: React.FC<MatriculaTableProps> = ({
   onEdit,
   onDelete,
   isLoading = false,
-  showEstudiante = true,
-  showGrupo = true,
   showActions = true,
 }) => {
   if (isLoading) {
@@ -53,56 +50,13 @@ export const MatriculaTable: React.FC<MatriculaTableProps> = ({
     );
   }
 
-  const getEstadoBadge = (estado: string) => {
-    const estados: Record<string, string> = {
-      'Activo': 'bg-blue-100 text-blue-800',
-      'Retirado': 'bg-gray-100 text-gray-800',
-      'Aprobado': 'bg-green-100 text-green-800',
-      'Reprobado': 'bg-red-100 text-red-800',
-      'Incompleto': 'bg-yellow-100 text-yellow-800',
-    };
-
-    const estilo = estados[estado] || 'bg-gray-100 text-gray-800';
-    
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${estilo}`}>
-        {estado}
-      </span>
-    );
-  };
-
-  const getCalificacionBadge = (calificacion?: number) => {
-    if (calificacion === undefined || calificacion === null) {
-      return <span className="text-gray-500 text-sm">-</span>;
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    try {
+      return format(new Date(dateString), 'PPpp');
+    } catch (error) {
+      return 'Fecha inválida';
     }
-    
-    let estilo = '';
-    if (calificacion >= 13) {
-      estilo = 'text-green-600';
-    } else if (calificacion >= 11) {
-      estilo = 'text-yellow-600';
-    } else {
-      estilo = 'text-red-600';
-    }
-    
-    return <span className={`font-medium ${estilo}`}>{calificacion.toFixed(1)}</span>;
-  };
-
-  const getAsistenciaBadge = (asistencia?: number) => {
-    if (asistencia === undefined || asistencia === null) {
-      return <span className="text-gray-500 text-sm">-</span>;
-    }
-    
-    let estilo = '';
-    if (asistencia >= 80) {
-      estilo = 'text-green-600';
-    } else if (asistencia >= 60) {
-      estilo = 'text-yellow-600';
-    } else {
-      estilo = 'text-red-600';
-    }
-    
-    return <span className={`font-medium ${estilo}`}>{asistencia}%</span>;
   };
 
   return (
@@ -112,24 +66,20 @@ export const MatriculaTable: React.FC<MatriculaTableProps> = ({
           <table className="min-w-full divide-y divide-gray-300">
             <thead className="bg-gray-50">
               <tr>
-                {showEstudiante && (
-                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                    Estudiante
-                  </th>
-                )}
-                {showGrupo && (
-                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                    Grupo
-                  </th>
-                )}
                 <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  Estado
+                  Código
                 </th>
                 <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  Calificación
+                  Estudiante
                 </th>
                 <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  Asistencia
+                  Grupo
+                </th>
+                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                  Fecha de Registro
+                </th>
+                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                  Última Actualización
                 </th>
                 {showActions && (
                   <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
@@ -141,50 +91,41 @@ export const MatriculaTable: React.FC<MatriculaTableProps> = ({
             <tbody className="divide-y divide-gray-200 bg-white">
               {matriculas.map((matricula) => (
                 <tr key={matricula.id} className="hover:bg-gray-50">
-                  {showEstudiante && (
-                    <td className="whitespace-nowrap px-3 py-4 text-sm">
-                      <div className="font-medium text-gray-900">
-                        {matricula.estudiante?.nombres} {matricula.estudiante?.apellidos}
-                      </div>
-                      <div className="text-gray-500 text-xs">
-                        {matricula.estudiante?.codigo || 'Código no disponible'}
-                      </div>
-                      {matricula.estudiante?.programa && (
-                        <div className="text-gray-500 text-xs">
-                          {matricula.estudiante.programa.nombre}
-                        </div>
-                      )}
-                    </td>
-                  )}
-                  
-                  {showGrupo && (
-                    <td className="whitespace-nowrap px-3 py-4 text-sm">
-                      <div className="font-medium text-gray-900">
-                        {matricula.grupo?.nombre || 'Grupo no disponible'}
-                      </div>
-                      {matricula.grupo?.programa && (
-                        <div className="text-gray-500 text-xs">
-                          {matricula.grupo.programa.nombre}
-                        </div>
-                      )}
-                      {matricula.grupo?.ciclo && (
-                        <div className="text-gray-500 text-xs">
-                          {matricula.grupo.ciclo.nombre}
-                        </div>
-                      )}
-                    </td>
-                  )}
-                  
-                  <td className="whitespace-nowrap px-3 py-4 text-sm">
-                    {matricula.estado && getEstadoBadge(matricula.estado)}
+                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                    {matricula.estudiante?.codigo || 'N/A'}
                   </td>
-                  
-                  <td className="whitespace-nowrap px-3 py-4 text-sm">
-                    {getCalificacionBadge(matricula.calificacionFinal)}
+                  <td className="whitespace-nowrap px-3 py-4">
+                    <div className="flex items-center">
+                      <div className="h-10 w-10 flex-shrink-0">
+                        <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                          <span className="text-gray-600 text-sm font-medium">
+                            {matricula.estudiante?.nombres?.charAt(0)}{matricula.estudiante?.apellidos?.charAt(0) || '?'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <div className="font-medium text-gray-900">
+                          {matricula.estudiante?.nombres} {matricula.estudiante?.apellidos}
+                        </div>
+                        <div className="text-gray-500 text-xs">
+                          {matricula.estudiante?.email || 'Sin email'}
+                        </div>
+                      </div>
+                    </div>
                   </td>
-                  
                   <td className="whitespace-nowrap px-3 py-4 text-sm">
-                    {getAsistenciaBadge(matricula.asistenciaPorcentaje)}
+                    <div className="font-medium text-gray-900">
+                      {matricula.grupo?.nombre || 'Grupo no disponible'}
+                    </div>
+                    <div className="text-gray-500 text-xs">
+                      ID: {matricula.grupo?.id || 'N/A'}
+                    </div>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                    {matricula.createdAt ? formatDate(matricula.createdAt) : 'N/A'}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                    {matricula.updatedAt ? formatDate(matricula.updatedAt) : 'N/A'}
                   </td>
                   
                   {showActions && (
@@ -196,7 +137,7 @@ export const MatriculaTable: React.FC<MatriculaTableProps> = ({
                         Editar
                       </button>
                       <button
-                        onClick={() => matricula.id && onDelete(matricula.id)}
+                        onClick={() => onDelete(matricula.id as number, matricula)}
                         className="text-red-600 hover:text-red-900"
                       >
                         Eliminar

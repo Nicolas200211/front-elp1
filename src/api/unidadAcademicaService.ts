@@ -12,12 +12,9 @@ export const unidadAcademicaService = {
    */
   async getAll(): Promise<UnidadAcademica[]> {
     try {
-      const response = await api.get(API_ENDPOINTS.UNIDADES_ACADEMICAS.BASE);
-      // Handle response with data and meta properties
-      if (response && typeof response === 'object' && 'data' in response) {
-        return Array.isArray(response.data) ? response.data : [];
-      }
-      return [];
+      const response = await api.get<{ data: UnidadAcademica[] }>(API_ENDPOINTS.UNIDADES_ACADEMICAS.BASE);
+      // The API returns { data: UnidadAcademica[] }
+      return Array.isArray(response?.data) ? response.data : [];
     } catch (error) {
       console.error('Error al obtener las unidades académicas:', error);
       throw new Error('No se pudieron cargar las unidades académicas. Por favor, intente nuevamente.');
@@ -31,12 +28,10 @@ export const unidadAcademicaService = {
    */
   async search(query: string): Promise<UnidadAcademica[]> {
     try {
-      const response = await api.get(API_ENDPOINTS.UNIDADES_ACADEMICAS.SEARCH(query));
-      // Handle response with data and meta properties
-      if (response && typeof response === 'object' && 'data' in response) {
-        return Array.isArray(response.data) ? response.data : [];
-      }
-      return [];
+      const response = await api.get<{ data: UnidadAcademica[] }>(
+        API_ENDPOINTS.UNIDADES_ACADEMICAS.SEARCH(query)
+      );
+      return Array.isArray(response?.data) ? response.data : [];
     } catch (error) {
       console.error('Error al buscar unidades académicas:', error);
       throw new Error('No se pudo realizar la búsqueda. Por favor, intente nuevamente.');
@@ -50,12 +45,11 @@ export const unidadAcademicaService = {
    */
   async getById(id: string | number): Promise<UnidadAcademica> {
     try {
-      const response = await api.get(API_ENDPOINTS.UNIDADES_ACADEMICAS.BY_ID(id));
-      // Handle response with data property
-      if (response && typeof response === 'object' && 'data' in response) {
-        return response.data as UnidadAcademica;
+      const response = await api.get<{ data: UnidadAcademica }>(API_ENDPOINTS.UNIDADES_ACADEMICAS.BY_ID(id));
+      if (!response?.data) {
+        throw new Error('No se encontraron datos de la unidad académica');
       }
-      throw new Error('No se encontraron datos de la unidad académica');
+      return response.data;
     } catch (error) {
       console.error(`Error al obtener la unidad académica con ID ${id}:`, error);
       throw new Error('No se pudo cargar la unidad académica. Por favor, verifique el ID e intente nuevamente.');
@@ -69,12 +63,14 @@ export const unidadAcademicaService = {
    */
   async create(unidad: Omit<UnidadAcademica, 'id'>): Promise<UnidadAcademica> {
     try {
-      const response = await api.post(API_ENDPOINTS.UNIDADES_ACADEMICAS.BASE, unidad);
-      // Handle response with data property
-      if (response && typeof response === 'object' && 'data' in response) {
-        return response.data as UnidadAcademica;
+      const response = await api.post<{ data: UnidadAcademica }>(
+        API_ENDPOINTS.UNIDADES_ACADEMICAS.BASE, 
+        unidad
+      );
+      if (!response?.data) {
+        throw new Error('No se recibieron datos de la unidad académica creada');
       }
-      throw new Error('No se recibieron datos de la unidad académica creada');
+      return response.data;
     } catch (error) {
       console.error('Error al crear la unidad académica:', error);
       throw new Error('No se pudo crear la unidad académica. Verifique los datos e intente nuevamente.');
@@ -89,12 +85,14 @@ export const unidadAcademicaService = {
    */
   async update(id: string | number, unidad: Partial<UnidadAcademica>): Promise<UnidadAcademica> {
     try {
-      const response = await api.patch(API_ENDPOINTS.UNIDADES_ACADEMICAS.BY_ID(id), unidad);
-      // Handle response with data property
-      if (response && typeof response === 'object' && 'data' in response) {
-        return response.data as UnidadAcademica;
+      const response = await api.patch<{ data: UnidadAcademica }>(
+        API_ENDPOINTS.UNIDADES_ACADEMICAS.BY_ID(id), 
+        unidad
+      );
+      if (!response?.data) {
+        throw new Error('No se recibieron datos de la unidad académica actualizada');
       }
-      throw new Error('No se recibieron datos de la unidad académica actualizada');
+      return response.data;
     } catch (error) {
       console.error(`Error al actualizar la unidad académica con ID ${id}:`, error);
       throw new Error('No se pudo actualizar la unidad académica. Verifique los datos e intente nuevamente.');

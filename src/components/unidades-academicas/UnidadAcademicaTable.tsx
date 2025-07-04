@@ -1,4 +1,5 @@
 import React from 'react';
+import { format } from 'date-fns';
 import type { UnidadAcademica } from '../../api/config';
 
 interface UnidadAcademicaTableProps {
@@ -55,17 +56,21 @@ export const UnidadAcademicaTable: React.FC<UnidadAcademicaTableProps> = ({
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
+
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ID
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Nombre
                   </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Descripción
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Asignaturas
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Creado
                   </th>
                   <th scope="col" className="relative px-6 py-3">
                     <span className="sr-only">Acciones</span>
@@ -73,34 +78,51 @@ export const UnidadAcademicaTable: React.FC<UnidadAcademicaTableProps> = ({
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {unidades.map((unidad) => (
-                  <tr key={unidad.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {unidad.nombre}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-500">
-                        {unidad.descripcion || 'Sin descripción'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => onEdit(unidad)}
-                        className="text-blue-600 hover:text-blue-900 mr-4"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => unidad.id && onDelete(unidad.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Eliminar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {unidades.map((unidad) => {
+                  const fechaCreacion = unidad.createdAt 
+                    ? format(new Date(unidad.createdAt), 'PPP')
+                    : 'No disponible';
+                    
+                  return (
+                    <tr key={unidad.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {unidad.id}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {unidad.nombre}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="text-sm text-gray-500 max-w-xs truncate">
+                          {unidad.descripcion || 'Sin descripción'}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {unidad.asignaturas?.length || 0}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {fechaCreacion}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                        <button
+                          onClick={() => onEdit(unidad)}
+                          className="text-blue-600 hover:text-blue-900 mr-4"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => unidad.id && onDelete(unidad.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Eliminar
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

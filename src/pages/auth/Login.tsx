@@ -68,9 +68,10 @@ const Login: React.FC = () => {
   }, []);
 
   // Función para animar texto letra por letra
-  const AnimatedText = ({ text, className = '' }: { text: string; className?: string }) => {
+  const AnimatedText = ({ text, className = '', as: Component = 'span' }: { text: string; className?: string; as?: React.ElementType }) => {
+    const TextComponent = Component;
     return (
-      <div className={`inline-flex ${className}`}>
+      <TextComponent className={`inline-flex ${className}`}>
         {text.split('').map((char, i) => (
           <span 
             key={i} 
@@ -80,7 +81,7 @@ const Login: React.FC = () => {
             {char === ' ' ? '\u00A0' : char}
           </span>
         ))}
-      </div>
+      </TextComponent>
     );
   };
 
@@ -100,9 +101,12 @@ const Login: React.FC = () => {
               />
             </Suspense>
           </div>
-          <div className="relative z-10 text-center text-white p-8 bg-black/20 backdrop-blur-sm rounded-2xl">
-            <h2 className="text-3xl font-bold mb-4 text-white/90">Bienvenido administrador</h2>
-            <p className="text-lg text-white/80">Inicia sesión para acceder a tu cuenta</p>
+          <div className="relative z-10 bg-transparent">
+            <img 
+              src="/src/assets/logo/logoHorarios-removebg-preview.png" 
+              alt="Logo" 
+              className="h-64 md:h-80 w-auto object-contain filter brightness-0 invert"
+            />
           </div>
         </div>
       {/* Sección del formulario */}
@@ -113,9 +117,9 @@ const Login: React.FC = () => {
               <h2 className="text-3xl font-bold text-gray-900 mb-2">
                 <AnimatedText text="Bienvenido de nuevo" className="inline-block" />
               </h2>
-              <p className="text-gray-600">
-                <AnimatedText text="Inicia sesión para continuar" className="inline-block" />
-              </p>
+              <div className="text-gray-600">
+                <AnimatedText text="Inicia sesión para continuar" as="span" className="inline-block" />
+              </div>
             </div>
 
             <form className="space-y-6" onSubmit={handleSubmit}>

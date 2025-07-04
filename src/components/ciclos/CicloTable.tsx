@@ -98,10 +98,19 @@ const CicloTable: React.FC<CicloTableProps> = ({
             <thead className="bg-gray-50">
               <tr>
                 <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
-                  Año - Período
+                  Año
                 </th>
                 <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  Fechas
+                  Período
+                </th>
+                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                  Estado
+                </th>
+                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                  Creado
+                </th>
+                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                  Actualizado
                 </th>
                 <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
                   <span className="sr-only">Acciones</span>
@@ -109,33 +118,54 @@ const CicloTable: React.FC<CicloTableProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white">
-              {ciclos.map((ciclo) => (
-                <tr key={ciclo.id} className="hover:bg-gray-50">
-                  <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                    <div className="font-medium">{ciclo.anio} - {ciclo.periodo}</div>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    <div>Creado: {formatDate(ciclo.createdAt)}</div>
-                    <div>Actualizado: {formatDate(ciclo.updatedAt)}</div>
-                  </td>
-                  <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                    <div className="flex items-center space-x-2 justify-end">
-                      <button
-                        onClick={() => ciclo.id && onEdit(ciclo)}
-                        className="text-indigo-600 hover:text-indigo-900 text-sm"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => ciclo.id && onDelete(ciclo.id)}
-                        className="text-red-600 hover:text-red-900 text-sm"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {ciclos.map((ciclo) => {
+                // Determine the color class based on estado
+                const estadoColors = {
+                  'Activos': 'bg-green-100 text-green-800',
+                  'Inactivos': 'bg-yellow-100 text-yellow-800',
+                  'Finalizados': 'bg-gray-100 text-gray-800',
+                  'Todos': 'bg-blue-100 text-blue-800'
+                };
+                
+                return (
+                  <tr key={ciclo.id} className="hover:bg-gray-50">
+                    <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                      {ciclo.anio}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      {ciclo.periodo}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${estadoColors[ciclo.estado as keyof typeof estadoColors] || 'bg-gray-100 text-gray-800'}`}>
+                        {ciclo.estado}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      {formatDate(ciclo.createdAt)}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      {formatDate(ciclo.updatedAt)}
+                    </td>
+                    <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                      <div className="flex items-center space-x-2 justify-end">
+                        <button
+                          onClick={() => ciclo.id && onEdit(ciclo)}
+                          className="text-indigo-600 hover:text-indigo-900 text-sm"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => ciclo.id && onDelete(ciclo.id)}
+                          className="text-red-600 hover:text-red-900 text-sm"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </td>
+
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

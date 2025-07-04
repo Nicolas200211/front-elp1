@@ -61,9 +61,16 @@ export const cicloService = {
 
   // Obtener ciclos por estado
   getByEstado: async (estado: string): Promise<Ciclo[]> => {
-    // Usar parámetros de consulta en lugar de segmentos de ruta
-    const url = `${API_ENDPOINTS.CICLOS.BASE}?estado=${encodeURIComponent(estado)}`;
-    return apiRequest<Ciclo[]>(url);
+    // Primero obtenemos todos los ciclos
+    const todosLosCiclos = await cicloService.getAll();
+    
+    // Si el estado es 'todos', devolvemos todos los ciclos
+    if (estado === 'todos') {
+      return todosLosCiclos;
+    }
+    
+    // Filtramos los ciclos por el estado especificado
+    return todosLosCiclos.filter(ciclo => ciclo.estado === estado);
   },
 
   // Obtener el ciclo actual

@@ -6,6 +6,8 @@ import { authService } from '../../api/authService';
 import type { Matricula, Estudiante, Grupo } from '../../api/config';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { DeleteModal } from '../../components/modales/DeleteModal';
+import { EditModal } from '../../components/modales/EditModal';
 
 const MatriculasPage: React.FC = () => {
   const [matriculas, setMatriculas] = useState<Matricula[]>([]);
@@ -13,6 +15,8 @@ const MatriculasPage: React.FC = () => {
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [currentMatricula, setCurrentMatricula] = useState<Partial<Matricula> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
+  const [matriculaToDelete, setMatriculaToDelete] = useState<{id: number, identificador: string} | null>(null);
   
   // Filtros
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -136,17 +140,31 @@ const MatriculasPage: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  // Manejar la eliminación de una matrícula
-  const handleDelete = async (id: number) => {
-    if (window.confirm('¿Está seguro de que desea eliminar esta matrícula?')) {
-      try {
-        await matriculaService.delete(id);
-        toast.success('Matrícula eliminada correctamente');
-        loadMatriculas();
-      } catch (error) {
-        console.error('Error al eliminar la matrícula:', error);
-        toast.error('Error al eliminar la matrícula');
-      }
+  // Manejar la apertura del modal de eliminación
+  const handleDeleteClick = (id: number, matricula: Matricula) => {
+    setMatriculaToDelete({
+      id,
+      identificador: `Matrícula #${id} - ${matricula.estudiante?.nombres} ${matricula.estudiante?.apellidos} (${matricula.grupo?.nombre || 'Grupo'})`
+    });
+    setIsDeleteModalOpen(true);
+  };
+
+  // Manejar la confirmación de eliminación
+  const handleDeleteConfirm = async () => {
+    if (!matriculaToDelete) return;
+    
+    try {
+      setIsSubmitting(true);
+      await matriculaService.delete(matriculaToDelete.id);
+      toast.success('Matrícula eliminada correctamente');
+      loadMatriculas();
+    } catch (error) {
+      console.error('Error al eliminar la matrícula:', error);
+      toast.error('Error al eliminar la matrícula');
+    } finally {
+      setIsDeleteModalOpen(false);
+      setMatriculaToDelete(null);
+      setIsSubmitting(false);
     }
   };
 
@@ -186,10 +204,6 @@ const MatriculasPage: React.FC = () => {
 
   // Verificar si hay filtros activos
   const hayFiltrosActivos = Boolean(filtroEstado || filtroEstudiante || filtroGrupo);
-  
-  // Determinar qué columnas mostrar en la tabla
-  const showEstudiante = !filtroEstudiante;
-  const showGrupo = !filtroGrupo;
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8">
@@ -329,40 +343,41 @@ const MatriculasPage: React.FC = () => {
         <MatriculaTable 
           matriculas={matriculas} 
           onEdit={handleEdit} 
-          onDelete={handleDelete} 
+          onDelete={handleDeleteClick} 
           isLoading={isLoading || isLoadingFiltros}
-          showEstudiante={showEstudiante}
-          showGrupo={showGrupo}
         />
       </div>
 
+      {/* Modal de confirmación de eliminación */}
+      <DeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => !isSubmitting && setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        itemName={matriculaToDelete ? matriculaToDelete.identificador : 'esta matrícula'}
+        isLoading={isSubmitting}
+        title="Eliminar Matrícula"
+        description="¿Está seguro de que desea eliminar esta matrícula?"
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+      />
+
       {/* Modal de formulario */}
-      {isFormOpen && currentMatricula && (
-        <div className="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => !isSubmitting && setIsFormOpen(false)}></div>
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full sm:p-6">
-              <div>
-                <div className="mt-3 text-center sm:mt-0 sm:text-left">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                    {currentMatricula.id ? 'Editar Matrícula' : 'Nueva Matrícula'}
-                  </h3>
-                  <div className="mt-4">
-                    <MatriculaForm
-                      initialData={currentMatricula}
-                      onSubmit={handleSubmit}
-                      isEditing={!!currentMatricula.id}
-                      onCancel={() => !isSubmitting && setIsFormOpen(false)}
-                      isSubmitting={isSubmitting}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+      <EditModal
+        isOpen={isFormOpen && !!currentMatricula}
+        onClose={() => !isSubmitting && setIsFormOpen(false)}
+        title={currentMatricula?.id ? 'Editar Matrícula' : 'Nueva Matrícula'}
+        isLoading={isSubmitting}
+      >
+        <div className="mt-4">
+          <MatriculaForm
+            initialData={currentMatricula || {}}
+            onSubmit={handleSubmit}
+            isEditing={!!currentMatricula?.id}
+            onCancel={() => !isSubmitting && setIsFormOpen(false)}
+            isSubmitting={isSubmitting}
+          />
         </div>
-      )}
+      </EditModal>
     </div>
   );
 };

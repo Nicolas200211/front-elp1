@@ -5,14 +5,18 @@ import { asignaturaService } from '../../api/asignaturaService';
 import type { Asignatura } from '../../api/config';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Modal } from '../../components/ui/Modal';
+import { EditModal } from '../../components/modales/EditModal';
+import { DeleteModal } from '../../components/modales/DeleteModal';
 
 const AsignaturasPage: React.FC = () => {
   const [asignaturas, setAsignaturas] = useState<Asignatura[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
   const [currentAsignatura, setCurrentAsignatura] = useState<Partial<Asignatura> | null>(null);
+  const [asignaturaToDelete, setAsignaturaToDelete] = useState<Asignatura | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   // Cargar asignaturas al montar el componente
   useEffect(() => {
@@ -91,16 +95,26 @@ const AsignaturasPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm('¿Está seguro de que desea eliminar esta asignatura?')) {
-      try {
-        await asignaturaService.delete(id);
-        toast.success('Asignatura eliminada correctamente');
-        loadAsignaturas();
-      } catch (error) {
-        console.error('Error al eliminar la asignatura:', error);
-        toast.error('Error al eliminar la asignatura');
-      }
+  const handleDeleteClick = (asignatura: Asignatura) => {
+    setAsignaturaToDelete(asignatura);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!asignaturaToDelete?.id) return;
+    
+    try {
+      setIsDeleting(true);
+      await asignaturaService.delete(asignaturaToDelete.id);
+      toast.success('Asignatura eliminada correctamente');
+      loadAsignaturas();
+      setIsDeleteModalOpen(false);
+    } catch (error) {
+      console.error('Error al eliminar la asignatura:', error);
+      toast.error('Error al eliminar la asignatura');
+    } finally {
+      setIsDeleting(false);
+      setAsignaturaToDelete(null);
     }
   };
 
@@ -161,27 +175,45 @@ const AsignaturasPage: React.FC = () => {
         <AsignaturaTable 
           asignaturas={asignaturas} 
           onEdit={handleEdit} 
-          onDelete={handleDelete} 
+          onDelete={handleDeleteClick} 
         />
       )}
 
-      {/* Modal de formulario */}
-      <Modal
+      <EditModal
         isOpen={isFormOpen}
-        onClose={() => !isSubmitting && setIsFormOpen(false)}
+        onClose={() => {
+          setIsFormOpen(false);
+          setCurrentAsignatura(null);
+        }}
         title={currentAsignatura?.id ? 'Editar Asignatura' : 'Nueva Asignatura'}
-        maxWidth="1024px"
+        isLoading={isSubmitting}
       >
-        {currentAsignatura && (
-          <AsignaturaForm
-            initialData={currentAsignatura}
-            onSubmit={handleSubmit}
-            isEditing={!!currentAsignatura.id}
-            onCancel={() => !isSubmitting && setIsFormOpen(false)}
-            isSubmitting={isSubmitting}
-          />
-        )}
-      </Modal>
+        <AsignaturaForm
+          initialData={currentAsignatura || {}}
+          onSubmit={handleSubmit}
+          isEditing={!!currentAsignatura?.id}
+          onCancel={() => {
+            setIsFormOpen(false);
+            setCurrentAsignatura(null);
+          }}
+          isSubmitting={isSubmitting}
+        />
+      </EditModal>
+
+      <DeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setAsignaturaToDelete(null);
+        }}
+        onConfirm={handleDelete}
+        itemName={asignaturaToDelete?.nombre || 'esta asignatura'}
+        isLoading={isDeleting}
+        title="Confirmar eliminación"
+        description="¿Está seguro de que desea eliminar esta asignatura?"
+        confirmText="Sí, eliminar"
+        cancelText="Cancelar"
+      />
     </div>
   );
 };

@@ -199,11 +199,14 @@ export const useProgramacionHorarios = ({ initialFilters = {} }: UseProgramacion
 
   // Verificar disponibilidad de horario
   const verificarDisponibilidad = async (data: {
-    fecha: string;
-    horaInicio: string;
-    horaFin: string;
-    idAula?: number;
-    idDocente?: number;
+    dia: DiaSemana;
+    hora_inicio: string;
+    hora_fin: string;
+    id_grupo: number;
+    id_asignatura: number;
+    id_docente: number;
+    id_aula: number;
+    id_horario_excluido?: number;
   }) => {
     try {
       return await programacionHorarioService.verificarDisponibilidad(data);
